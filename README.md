@@ -181,6 +181,53 @@ docker compose -f docker-compose.local.yml logs -f youchords-local
 
 For Windows, open **Start YouChords Windows Processor** from the Start menu and check `http://127.0.0.1:8766/v1/health` again.
 
+### Docker Desktop cannot start the container on Windows
+
+If restarting Docker Desktop does not bring the YouChords container back, restart the Windows NAT driver (WinNAT). Quit Docker Desktop completely first. Stopping WinNAT temporarily interrupts NAT networking used by containers; [Microsoft's WinNAT guide](https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/setup-nat-network) describes how Windows container networking uses HNS and WinNAT.
+
+**Stop WinNAT:** Save this as `Stop-WinNAT.bat` and run it. Approve the administrator prompt.
+
+```bat
+@echo off
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+
+echo Stopping WinNAT...
+net stop winnat
+echo.
+echo Done.
+timeout /t 2 /nobreak >nul
+exit
+```
+
+**Start WinNAT again:** After the stop command finishes, save this as `Start-WinNAT.bat` and run it. This restores the service.
+
+```bat
+@echo off
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+
+echo Starting WinNAT...
+net start winnat
+echo.
+echo Done.
+timeout /t 2 /nobreak >nul
+exit
+```
+
+Check the `net stop` and `net start` output; the scripts print `Done` even if a command reports an error. Then reopen Docker Desktop and start YouChords again:
+
+```powershell
+.\scripts\start_youchords_local.ps1
+Invoke-RestMethod http://127.0.0.1:8765/v1/health
+```
+
 ### Downloads or long-video processing fail
 
 Open the extension popup and approve any pending `yt-dlp` update. If a job is already running, wait for it to finish and approve again. For long videos, leave the page open while the local queue finishes its earlier jobs.
