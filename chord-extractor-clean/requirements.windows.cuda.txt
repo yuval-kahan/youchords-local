@@ -1,0 +1,6 @@
+--index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://pypi.org/simple
+
+torch==2.5.1+cu121
+torchaudio==2.5.1+cu121
+nvidia-cudnn-cu12==8.9.7.29

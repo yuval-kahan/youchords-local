@@ -27,6 +27,7 @@ from flask import Flask, Response, jsonify, request, send_file, stream_with_cont
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 import main as chord_engine
+from device_runtime import inspect_torch_cuda, resolve_compute_device
 from yt_dlp_updates import YtDlpUpdateManager, yt_dlp_command
 
 
@@ -52,7 +53,10 @@ SUBFLOW_MAX_SUBTITLE_BYTES = max(
 )
 SEPARATION_MAX_QUEUE_SIZE = max(1, int(os.environ.get("YOUCHORDS_SEPARATION_MAX_QUEUE", "2")))
 DEMUCS_MODEL = str(os.environ.get("YOUCHORDS_DEMUCS_MODEL", "htdemucs_6s")).strip() or "htdemucs_6s"
-DEMUCS_DEVICE = str(os.environ.get("YOUCHORDS_DEMUCS_DEVICE", "cpu")).strip().lower() or "cpu"
+TORCH_CUDA_STATUS = inspect_torch_cuda()
+CUDA_AVAILABLE = bool(TORCH_CUDA_STATUS["available"])
+DEMUCS_REQUESTED_DEVICE = str(os.environ.get("YOUCHORDS_DEMUCS_DEVICE", "auto")).strip().lower() or "auto"
+DEMUCS_DEVICE = resolve_compute_device(DEMUCS_REQUESTED_DEVICE, CUDA_AVAILABLE)
 VOCAL_MUSIC_MODEL = str(
     os.environ.get("YOUCHORDS_VOCAL_MUSIC_MODEL", "melband-roformer-kim-vocals")
 ).strip() or "melband-roformer-kim-vocals"
@@ -64,9 +68,13 @@ MELBAND_MODEL_ROOT = Path(
 ).resolve()
 SEPARATION_STEMS = ("vocals", "instrumental", "drums", "bass", "guitar", "piano", "other")
 WHISPER_MODEL = str(os.environ.get("YOUCHORDS_WHISPER_MODEL", "large-v2")).strip() or "large-v2"
-WHISPER_DEVICE = str(os.environ.get("YOUCHORDS_WHISPER_DEVICE", "cuda")).strip().lower() or "cuda"
+WHISPER_REQUESTED_DEVICE = str(os.environ.get("YOUCHORDS_WHISPER_DEVICE", "auto")).strip().lower() or "auto"
+WHISPER_DEVICE = resolve_compute_device(WHISPER_REQUESTED_DEVICE, CUDA_AVAILABLE)
+ACTIVE_ACCELERATOR = WHISPER_DEVICE if WHISPER_DEVICE == DEMUCS_DEVICE else "mixed"
 WHISPER_ENGINE = str(os.environ.get("YOUCHORDS_WHISPER_ENGINE", "whisperx")).strip().lower() or "whisperx"
 WHISPERX_BATCH_SIZE = max(1, int(os.environ.get("YOUCHORDS_WHISPERX_BATCH_SIZE", "8")))
+if WHISPER_DEVICE == "cpu":
+    WHISPERX_BATCH_SIZE = min(WHISPERX_BATCH_SIZE, 2)
 WHISPER_MODEL_ROOT = Path(
     os.environ.get("YOUCHORDS_WHISPER_MODEL_ROOT", str(DATA_ROOT / "models" / "whisper"))
 ).resolve()
@@ -1796,6 +1804,14 @@ def health():
             "success": True,
             "service": "youchords-local",
             "mode": "local-only",
+            "accelerator": {
+                "mode": ACTIVE_ACCELERATOR,
+                "cudaAvailable": CUDA_AVAILABLE,
+                "gpuName": TORCH_CUDA_STATUS["name"],
+                "whisperDevice": WHISPER_DEVICE,
+                "separationDevice": DEMUCS_DEVICE,
+                "detectionError": TORCH_CUDA_STATUS["error"],
+            },
             "regularEngine": chord_engine.REGULAR_ENGINE,
             "engines": ["madmom", "chordino"],
             "activeJobs": active,

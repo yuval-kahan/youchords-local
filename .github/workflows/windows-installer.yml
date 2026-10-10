@@ -1,16 +1,16 @@
-name: Build YouChords Windows installer
+name: Build and test YouChords local installers
 
 on:
   workflow_dispatch:
   push:
     tags:
-      - 'windows-v*'
+      - 'processor-v*'
 
 permissions:
   contents: write
 
 jobs:
-  build-installer:
+  build-windows:
     runs-on: windows-latest
     steps:
       - name: Check out YouChords
@@ -20,6 +20,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      - name: Verify automatic device selection
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = Join-Path $env:GITHUB_WORKSPACE 'chord-extractor-clean'
+          python -m unittest discover -s tests -v
 
       - name: Install the x64 MinGW toolchain
         uses: msys2/setup-msys2@v2
@@ -95,7 +101,7 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path (Join-Path $payload 'processor') | Out-Null
           Copy-Item chord-extractor-clean\*.py (Join-Path $payload 'processor') -Force
-          Copy-Item chord-extractor-clean\requirements.windows.txt (Join-Path $payload 'processor') -Force
+          Copy-Item chord-extractor-clean\requirements.windows*.txt (Join-Path $payload 'processor') -Force
 
           $annotatorExe = Join-Path $payload 'sonic-annotator\sonic-annotator.exe'
           if (-not (Test-Path -LiteralPath $annotatorExe -PathType Leaf)) { throw 'The official Sonic Annotator archive did not contain sonic-annotator.exe.' }
@@ -117,6 +123,27 @@ jobs:
           $installer = Join-Path $env:GITHUB_WORKSPACE 'dist\YouChords-Local-Windows-Setup.exe'
           if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) { throw 'The Windows installer file was not created.' }
 
+      - name: Install the EXE and verify automatic CPU fallback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Start-Process -FilePath 'dist\YouChords-Local-Windows-Setup.exe' -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru -Wait
+          if ($installer.ExitCode -ne 0) { throw "Windows installer exited with code $($installer.ExitCode)." }
+          $launcher = Join-Path $env:LOCALAPPDATA 'Programs\YouChords Local\scripts\start_windows.ps1'
+          if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'The EXE did not install its Windows processor launcher.' }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $launcher
+          $health = $null
+          for ($i = 0; $i -lt 120; $i++) {
+            try {
+              $health = Invoke-RestMethod -Uri 'http://127.0.0.1:8766/v1/health' -TimeoutSec 3
+              if ($health.success) { break }
+            } catch { Start-Sleep -Seconds 5 }
+          }
+          if (-not $health.success) { throw 'The Windows EXE did not start a healthy processor.' }
+          if ($health.accelerator.mode -ne 'cpu' -or $health.accelerator.whisperDevice -ne 'cpu' -or $health.accelerator.separationDevice -ne 'cpu') {
+            throw "Expected CPU fallback on the GPU-free runner; health reported $($health.accelerator | ConvertTo-Json -Compress)."
+          }
+
       - name: Upload the compiled installer
         uses: actions/upload-artifact@v4
         with:
@@ -125,11 +152,159 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish the Windows installer release
-        if: startsWith(github.ref, 'refs/tags/windows-v')
-        shell: pwsh
+
+  build-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out YouChords
+        uses: actions/checkout@v4
+
+      - name: Set up Python for the pinned uv runtime manager
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify automatic device selection
+        run: PYTHONPATH=chord-extractor-clean python -m unittest discover -s tests -v
+
+      - name: Assemble the Linux setup bundle and Debian package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#processor-v}"
+          if [[ "$version" == "$GITHUB_REF_NAME" ]]; then version='2.2.0'; fi
+          node_version='v22.23.3'
+          archive="node-${node_version}-linux-x64.tar.xz"
+          node_base="https://nodejs.org/dist/${node_version}"
+          mkdir -p linux-payload/runtime
+          curl -fsSLo "$RUNNER_TEMP/$archive" "$node_base/$archive"
+          curl -fsSL "$node_base/SHASUMS256.txt" -o "$RUNNER_TEMP/SHASUMS256.txt"
+          (cd "$RUNNER_TEMP" && grep "  $archive$" SHASUMS256.txt | sha256sum --check --status)
+          tar -xJf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
+          cp -a "$RUNNER_TEMP/node-${node_version}-linux-x64" linux-payload/runtime/node
+          python -m pip install --upgrade pip 'uv==0.13.0'
+          install -m 0755 "$(command -v uv)" linux-payload/runtime/uv
+          mkdir -p linux-payload/licenses
+          uv_licenses="$(python -c 'import site; print(site.getsitepackages()[0])')"
+          find "$uv_licenses" -path '*uv-0.13.0.dist-info/LICENSE*' -type f -exec cp {} linux-payload/licenses/ \;
+          test -n "$(find linux-payload/licenses -type f -print -quit)"
+          YOUCHORDS_LINUX_PAYLOAD="$GITHUB_WORKSPACE/linux-payload" bash scripts/build_linux_installer.sh "$version"
+
+      - name: Install Debian package and verify CPU runtime health
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb="$(find dist -maxdepth 1 -name 'youchords-local_*_amd64.deb' -print -quit)"
+          sudo apt-get update
+          sudo apt-get install -y "$GITHUB_WORKSPACE/$deb"
+          youchords-local-setup --no-start
+          app="$HOME/.local/share/YouChordsLocal/app"
+          data="$HOME/.local/share/YouChordsLocal/data"
+          export PATH="$app/runtime/node/bin:$app/venv/bin:$PATH"
+          export LD_LIBRARY_PATH="$app/processor/sonic-annotator:$app/processor/vamp_plugins:$app/venv/lib/python3.10/site-packages/nvidia/cudnn/lib:$app/venv/lib/python3.10/site-packages/nvidia/cublas/lib:$app/venv/lib/python3.10/site-packages/nvidia/cuda_runtime/lib"
+          export HF_HOME="$data/models/huggingface"
+          export YOUCHORDS_LOCAL_HOST=127.0.0.1 YOUCHORDS_LOCAL_PORT=8767
+          export YOUCHORDS_LOCAL_DATA_DIR="$data" YOUCHORDS_YTDLP_DATA_DIR="$data/yt-dlp"
+          export YOUCHORDS_DEMUCS_DEVICE=auto YOUCHORDS_WHISPER_DEVICE=auto
+          export YOUCHORDS_WHISPER_MODEL_ROOT="$data/models/whisper" YOUCHORDS_MELBAND_MODEL_ROOT="$data/models/melband"
+          export YOUCHORDS_REGULAR_ENGINE=madmom YOUCHORDS_WHISPER_ENGINE=whisperx YOUCHORDS_WHISPERX_BATCH_SIZE=8
+          export YOUCHORDS_SONIC_ANNOTATOR_BIN="$app/processor/sonic-annotator/sonic-annotator"
+          export YOUCHORDS_SONIC_ANNOTATOR_LIB="$app/processor/sonic-annotator" YOUCHORDS_VAMP_PATH="$app/processor/vamp_plugins"
+          export SUBFLOW_API_BASE=http://127.0.0.1:18000
+          "$app/venv/bin/python" "$app/processor/local_companion.py" >"$RUNNER_TEMP/linux-processor.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:8767/v1/health -o "$RUNNER_TEMP/health.json"; then break; fi
+            sleep 5
+          done
+          python - "$RUNNER_TEMP/health.json" <<'PY'
+          import json, sys
+          with open(sys.argv[1], encoding='utf-8') as handle:
+              health = json.load(handle)
+          accelerator = health.get('accelerator', {})
+          assert health.get('success') is True, health
+          assert accelerator.get('mode') == 'cpu', accelerator
+          assert accelerator.get('whisperDevice') == 'cpu', accelerator
+          assert accelerator.get('separationDevice') == 'cpu', accelerator
+          print('Linux processor health confirms CPU fallback:', accelerator)
+          PY
+
+      - name: Upload Linux installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: YouChords-Local-Linux-Setup
+          path: |
+            dist/YouChords-Local-Linux-Setup.tar.gz
+            dist/YouChords-Local-Linux-Setup.tar.gz.sha256
+            dist/youchords-local_*_amd64.deb
+            dist/youchords-local_*_amd64.deb.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  test-docker-cpu:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out YouChords
+        uses: actions/checkout@v4
+
+      - name: Build and run Docker without GPU passthrough
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.local.yml up --build -d
+          for attempt in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:8765/v1/health -o "$RUNNER_TEMP/docker-health.json"; then break; fi
+            sleep 5
+          done
+          python3 - "$RUNNER_TEMP/docker-health.json" <<'PY'
+          import json, sys
+          with open(sys.argv[1], encoding='utf-8') as handle:
+              health = json.load(handle)
+          accelerator = health.get('accelerator', {})
+          assert health.get('success') is True, health
+          assert accelerator.get('mode') == 'cpu', accelerator
+          assert accelerator.get('whisperDevice') == 'cpu', accelerator
+          assert accelerator.get('separationDevice') == 'cpu', accelerator
+          print('Docker health confirms CPU fallback:', accelerator)
+          PY
+
+      - name: Show Docker logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.local.yml logs
+
+      - name: Stop Docker processor
+        if: always()
+        run: docker compose -f docker-compose.local.yml down
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/processor-v')
+    needs: [build-windows, build-linux, test-docker-cpu]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: YouChords-Local-Windows-Setup
+          path: dist
+
+      - name: Download Linux installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: YouChords-Local-Linux-Setup
+          path: dist
+
+      - name: Publish tested installers
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = $env:GITHUB_REF_NAME
-          gh release create $tag 'dist/YouChords-Local-Windows-Setup.exe' --title "YouChords Local Windows $tag" --notes 'Windows-native local processor installer. The existing Docker processor remains available on port 8765; the Windows processor uses port 8766. Choose the processor in the extension popup.' --verify-tag
+          version="${GITHUB_REF_NAME#processor-v}"
+          gh release create "$GITHUB_REF_NAME" \
+            dist/YouChords-Local-Windows-Setup.exe \
+            dist/YouChords-Local-Linux-Setup.tar.gz \
+            dist/YouChords-Local-Linux-Setup.tar.gz.sha256 \
+            dist/youchords-local_*_amd64.deb \
+            dist/youchords-local_*_amd64.deb.sha256 \
+            --title "YouChords Local ${version} installers" \
+            --notes "Tested local processors for Windows, Linux (Ubuntu 24.04 x64), and Docker. NVIDIA CUDA is used when available; all three paths automatically fall back to CPU. Docker uses port 8765, Windows 8766, and Linux 8767. Select an installed processor in the extension popup." \
+            --verify-tag

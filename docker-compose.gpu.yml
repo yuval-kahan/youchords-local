@@ -1,0 +1,3 @@
+services:
+  youchords-local:
+    gpus: all

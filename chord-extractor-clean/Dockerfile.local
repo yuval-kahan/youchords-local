@@ -70,7 +70,7 @@ COPY sonic-annotator/ /app/sonic-annotator/
 RUN chmod +x /app/sonic-annotator/sonic-annotator
 
 COPY vamp_plugins/ /app/vamp_plugins/
-COPY main.py process_chords.py compress_files.py local_companion.py yt_dlp_updates.py /app/
+COPY main.py process_chords.py compress_files.py local_companion.py device_runtime.py yt_dlp_updates.py /app/
 
 RUN mkdir -p /app/output/chords /app/output/lyrics /app/temp
 

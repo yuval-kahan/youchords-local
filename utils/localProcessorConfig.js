@@ -2,7 +2,8 @@ export const LOCAL_PROCESSOR_STORAGE_KEY = 'preferredLocalProcessor';
 
 export const LOCAL_PROCESSORS = Object.freeze({
   docker: Object.freeze({ id: 'docker', label: 'Docker', port: 8765 }),
-  windows: Object.freeze({ id: 'windows', label: 'Windows', port: 8766 })
+  windows: Object.freeze({ id: 'windows', label: 'Windows', port: 8766 }),
+  linux: Object.freeze({ id: 'linux', label: 'Linux', port: 8767 })
 });
 
 export const DEFAULT_LOCAL_PROCESSOR = 'docker';

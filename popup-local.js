@@ -82,19 +82,25 @@ async function refreshHealth() {
   try {
     const health = await localProcessingClient.getHealth();
     if (health.success) {
+      const accelerator = health.accelerator;
+      const computeLabel = accelerator?.mode === 'cuda'
+        ? `GPU · ${accelerator.gpuName || 'NVIDIA CUDA'}`
+        : (accelerator?.mode === 'mixed' ? 'GPU/CPU mode' : 'CPU mode');
       setEngineState(
         'ready',
         'Local engine is ready',
         health.activeJobs > 0
-          ? `${health.activeJobs} video${health.activeJobs === 1 ? '' : 's'} processing now`
-          : 'Ready to process any YouTube video'
+          ? `${health.activeJobs} video${health.activeJobs === 1 ? '' : 's'} processing now · ${computeLabel}`
+          : `Ready to process any YouTube video · ${computeLabel}`
       );
       elements.engineDetails.hidden = false;
     } else {
       setEngineState('offline', `${processor.label} processor is not running`, 'Start the selected local processor, then check again');
       elements.startHelpMessage.textContent = selectedProcessor === 'docker'
         ? 'Start the Docker processor from the repository.'
-        : 'Start the YouChords Windows processor from the Start menu.';
+        : (selectedProcessor === 'windows'
+          ? 'Start the YouChords Windows processor from the Start menu.'
+          : 'Install the Linux setup package and start the user service.');
       elements.startHelp.hidden = false;
     }
   } finally {

@@ -14,17 +14,16 @@ services:
       YOUCHORDS_LOCAL_MAX_QUEUE: "8"
       YOUCHORDS_LOCAL_MAX_RETAINED_JOBS: "200"
       YOUCHORDS_DEMUCS_MODEL: "htdemucs_6s"
-      YOUCHORDS_DEMUCS_DEVICE: "cuda"
+      YOUCHORDS_DEMUCS_DEVICE: "auto"
       YOUCHORDS_VOCAL_MUSIC_MODEL: "melband-roformer-kim-vocals"
       YOUCHORDS_MELBAND_MODEL_ROOT: "/app/output/models/melband"
       YOUCHORDS_WHISPER_MODEL: "large-v2"
-      YOUCHORDS_WHISPER_DEVICE: "cuda"
+      YOUCHORDS_WHISPER_DEVICE: "auto"
       YOUCHORDS_WHISPER_MODEL_ROOT: "/root/.cache/torch/whisper"
       YOUCHORDS_WHISPER_ENGINE: "whisperx"
       YOUCHORDS_WHISPERX_BATCH_SIZE: "8"
       HF_HOME: "/root/.cache/huggingface"
       SUBFLOW_API_BASE: "http://host.docker.internal:18000"
-    gpus: all
     ports:
       - "127.0.0.1:8765:8765"
     volumes:

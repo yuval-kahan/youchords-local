@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouChords Local: Real-Time Chords for YouTube",
-  "version": "2.1.0",
-  "description": "Generate YouTube chords locally with Docker or Windows. Optional Gemini subtitles use your own API key.",
+  "version": "2.2.0",
+  "description": "Generate YouTube chords locally with Docker, Windows, or Linux. Optional Gemini subtitles use your own API key.",
   "minimum_chrome_version": "127",
   "permissions": [
     "activeTab",
@@ -15,6 +15,8 @@
     "http://localhost:8765/*",
     "http://127.0.0.1:8766/*",
     "http://localhost:8766/*",
+    "http://127.0.0.1:8767/*",
+    "http://localhost:8767/*",
     "https://generativelanguage.googleapis.com/*"
   ],
   "action": {

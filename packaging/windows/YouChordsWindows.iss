@@ -1,4 +1,4 @@
-#define AppVersion "2.1.0"
+#define AppVersion "2.2.0"
 #define PayloadDir GetEnv("YOUCHORDS_WINDOWS_PAYLOAD")
 
 [Setup]
@@ -24,7 +24,7 @@ RestartApplications=no
 [Files]
 Source: "{#PayloadDir}\uv.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#PayloadDir}\processor\*.py"; DestDir: "{app}\processor"; Flags: ignoreversion
-Source: "{#PayloadDir}\processor\requirements.windows.txt"; DestDir: "{app}\processor"; Flags: ignoreversion
+Source: "{#PayloadDir}\processor\requirements.windows*.txt"; DestDir: "{app}\processor"; Flags: ignoreversion
 Source: "{#PayloadDir}\wheels\*"; DestDir: "{app}\wheels"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PayloadDir}\sonic-annotator\*"; DestDir: "{app}\sonic-annotator"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PayloadDir}\vamp_plugins_windows\*"; DestDir: "{app}\vamp_plugins_windows"; Flags: ignoreversion recursesubdirs createallsubdirs
