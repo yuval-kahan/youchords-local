@@ -85,6 +85,19 @@ Download and run [YouChords-Local-Windows-Setup.exe](https://github.com/yuval-ka
 
 In the extension popup, choose **Windows · port 8766** under **PROCESSOR**.
 
+#### Stop, start, or disable automatic startup
+
+To stop the processor, open PowerShell and run:
+
+```powershell
+$python = Join-Path $env:LOCALAPPDATA 'Programs\YouChords Local\venv\Scripts\python.exe'
+Get-CimInstance Win32_Process |
+  Where-Object { $_.ExecutablePath -eq $python -and $_.CommandLine -like '*local_companion.py*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId }
+```
+
+To start it again, open **Start YouChords Windows Processor** from the Start menu. To stop it starting when you sign in, press **Win+R**, enter `shell:startup`, and delete the **YouChords Local Windows** shortcut. Run the installer again to restore automatic startup.
+
 ### Docker processor
 
 Install Docker Desktop with its WSL 2 backend. The start script detects NVIDIA GPU support and chooses GPU or CPU mode:
@@ -117,6 +130,27 @@ youchords-local-setup
 ```
 
 The setup installs a private Python runtime, detects NVIDIA CUDA support, and installs the matching AI packages. It starts a per-user service at sign-in on port `8767`; without a usable NVIDIA driver it installs the CPU runtime. In the extension popup choose **Linux · port 8767**. Models download on first use, so allow several gigabytes of disk space.
+
+#### Stop, start, or disable automatic startup
+
+Run these commands in a terminal as your regular user; `sudo` is not needed:
+
+```bash
+# Stop it now. It will start again at your next sign-in.
+systemctl --user stop youchords-local.service
+
+# Start it again now.
+systemctl --user start youchords-local.service
+
+# Stop it now and keep it from starting at sign-in.
+systemctl --user disable --now youchords-local.service
+
+# Start it now and restore automatic startup at sign-in.
+systemctl --user enable --now youchords-local.service
+
+# Check whether it is running.
+systemctl --user status youchords-local.service
+```
 
 ### Load the extension in Chrome
 
