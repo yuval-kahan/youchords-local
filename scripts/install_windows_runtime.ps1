@@ -62,7 +62,13 @@ if ($cudaAvailable) {
   $selectedBackendRequirements = $cpuRequirements
   $backendIndex = 'https://download.pytorch.org/whl/cpu'
 }
-& $uv pip install --python $venvPython --find-links $wheels --index $backendIndex --default-index https://pypi.org/simple -r $requirements -r $selectedBackendRequirements
+& $uv pip install --python $venvPython --no-deps --index $backendIndex --default-index https://pypi.org/simple -r $selectedBackendRequirements
+if ($LASTEXITCODE -ne 0) { throw 'Could not install the selected CPU/GPU PyTorch packages.' }
+if ($cudaAvailable) {
+  & $uv pip install --python $venvPython 'nvidia-cudnn-cu12==8.9.7.29'
+  if ($LASTEXITCODE -ne 0) { throw 'Could not install the CUDA runtime libraries.' }
+}
+& $uv pip install --python $venvPython --find-links $wheels -r $requirements
 if ($LASTEXITCODE -ne 0) { throw 'Could not install the YouChords packages for the selected CPU/GPU runtime.' }
 
 Write-Host 'Windows local processor packages are ready.' -ForegroundColor Green
