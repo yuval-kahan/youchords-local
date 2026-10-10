@@ -8,11 +8,11 @@
   A local-first Chrome extension that adds synchronized chords, lyrics, word-level transcription, audio tools, and guitar practice controls to YouTube.
 </p>
 
-# ⚠️ CRITICAL — keep `yt-dlp` updated to the latest release
+# ⚠️ Keep `yt-dlp` current
 
-**YouChords depends on `yt-dlp` to download a video's audio. YouTube changes frequently; an outdated `yt-dlp` is the most common reason processing suddenly stops working. Update it before troubleshooting anything else, and keep it current.**
+`yt-dlp` downloads the video's audio, and YouTube changes can make older versions stop working. The local Docker processor installs the latest `yt-dlp` version allowed by `chord-extractor-clean/requirements.local.txt` when its image is rebuilt. This update happens at build time: a running container does not update itself, and Docker may reuse a cached build layer.
 
-From the repository root, rebuild the local processor without Docker's package cache so it installs the newest version allowed by `requirements.local.txt`:
+If YouTube downloads fail, rebuild the processor without Docker's build cache:
 
 ```powershell
 docker compose -f docker-compose.local.yml build --no-cache youchords-local
@@ -20,7 +20,7 @@ docker compose -f docker-compose.local.yml up -d
 docker compose -f docker-compose.local.yml exec youchords-local yt-dlp --version
 ```
 
-If YouTube downloads fail, do this first. Do not assume a previously working `yt-dlp` build is still current.
+Then check the installed version with the command above. Rebuilding the extension itself does not update `yt-dlp`.
 
 ---
 
