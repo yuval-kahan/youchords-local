@@ -62,7 +62,7 @@ if ($cudaAvailable) {
   $selectedBackendRequirements = $cpuRequirements
   $backendIndex = 'https://download.pytorch.org/whl/cpu'
 }
-& $uv pip install --python $venvPython --find-links $wheels --index-url $backendIndex --extra-index-url https://pypi.org/simple -r $requirements -r $selectedBackendRequirements
+& $uv pip install --python $venvPython --find-links $wheels --index $backendIndex --default-index https://pypi.org/simple -r $requirements -r $selectedBackendRequirements
 if ($LASTEXITCODE -ne 0) { throw 'Could not install the YouChords packages for the selected CPU/GPU runtime.' }
 
 Write-Host 'Windows local processor packages are ready.' -ForegroundColor Green

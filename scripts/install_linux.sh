@@ -109,7 +109,7 @@ else
   echo "No usable NVIDIA GPU detected. Installing the CPU processing runtime..."
 fi
 "${app_root}/runtime/uv" pip install --python "${venv_python}" \
-  --index-url "${backend_index}" --extra-index-url https://pypi.org/simple \
+  --index "${backend_index}" --default-index https://pypi.org/simple \
   -r "${app_root}/processor/requirements.linux.txt" \
   -r "${app_root}/processor/${backend_requirements}"
 
