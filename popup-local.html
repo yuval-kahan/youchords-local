@@ -30,13 +30,21 @@
           <span id="statusDot" class="local-status-dot checking" aria-hidden="true"></span>
           <div class="local-status-copy">
             <div class="local-card-eyebrow">LOCAL PROCESSOR</div>
-            <h2 id="engineHeading">Checking Docker...</h2>
+            <h2 id="engineHeading">Checking local processor...</h2>
             <p id="statusDetail">Connecting on this computer</p>
           </div>
-          <button id="refreshStatus" class="local-icon-button" type="button" title="Check again" aria-label="Check Docker again">
+          <button id="refreshStatus" class="local-icon-button" type="button" title="Check again" aria-label="Check selected processor again">
             <span aria-hidden="true">&#8635;</span>
           </button>
         </div>
+
+        <label class="local-processor-choice" for="processorSelect">
+          <span>PROCESSOR</span>
+          <select id="processorSelect">
+            <option value="docker">Docker · port 8765</option>
+            <option value="windows">Windows · port 8766</option>
+          </select>
+        </label>
 
         <div id="engineDetails" class="local-engine-details" hidden>
           <span>madmom</span>
@@ -46,9 +54,11 @@
         </div>
 
         <div id="startHelp" class="local-start-help" hidden>
-          <p>Start the Docker processor from the repository.</p>
+          <p id="startHelpMessage">Start the Docker processor from the repository.</p>
           <button id="copyCommand" class="local-copy-command" type="button">Copy start command</button>
         </div>
+
+        <div id="ytDlpUpdates" class="local-yt-dlp-updates" aria-live="polite"></div>
 
         <div class="local-account-note">No account or sign-in required</div>
       </div>
@@ -105,7 +115,7 @@
         <div id="apiSectionContent" class="api-section-content">
           <p class="api-description">
             Optional: use your own Gemini API key when YouTube captions are unavailable.
-            Chord processing remains local in Docker.
+            Chord processing remains local on this computer.
           </p>
 
           <div class="api-key-label"><span>ADD GEMINI API KEY</span></div>
@@ -168,7 +178,7 @@
       <strong>YouChords Local</strong>
       <button id="helpCloseBtn" type="button" aria-label="Close help">&times;</button>
     </div>
-    <p>Docker handles chord downloads and analysis locally. Gemini is optional and is used only for subtitles when enabled.</p>
+    <p>The selected Docker or Windows processor handles downloads and analysis locally. Gemini is optional and is used only for subtitles when enabled.</p>
     <code>powershell -ExecutionPolicy Bypass -File .\scripts\start_youchords_local.ps1</code>
     <span id="extensionVersion" class="local-version"></span>
   </aside>

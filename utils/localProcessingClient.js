@@ -1,4 +1,5 @@
-const LOCAL_API_BASE = 'http://127.0.0.1:8765/v1';
+import { getLocalApiBase } from './localProcessorConfig.js';
+
 const POLL_INTERVAL_MS = 1000;
 
 function sleep(ms, signal) {
@@ -21,7 +22,8 @@ function sleep(ms, signal) {
 }
 
 async function fetchJson(path, options = {}) {
-  const response = await fetch(`${LOCAL_API_BASE}${path}`, {
+  const apiBase = await getLocalApiBase();
+  const response = await fetch(`${apiBase}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -44,8 +46,8 @@ function unavailableResult(error) {
     processingFailed: true,
     localServiceUnavailable: true,
     error: detail.includes('Failed to fetch')
-      ? 'YouChords Local is not running. Start Docker with scripts/start_youchords_local.ps1 and try again.'
-      : (detail || 'Could not reach YouChords Local on port 8765.')
+      ? 'The selected YouChords Local processor is not running. Start it, then check again.'
+      : (detail || 'Could not reach the selected YouChords Local processor.')
   };
 }
 
@@ -136,7 +138,7 @@ async function getHealth() {
 }
 
 export const localProcessingClient = {
-  baseUrl: LOCAL_API_BASE,
+  getBaseUrl: getLocalApiBase,
   getHealth,
   getOrProcessChords
 };

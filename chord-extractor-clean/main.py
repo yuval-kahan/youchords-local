@@ -16,15 +16,21 @@ import soundfile as sf
 
 # Get the directory where this script is located
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_ROOT = os.path.abspath(os.environ.get("YOUCHORDS_LOCAL_DATA_DIR", APP_DIR))
 
 # Paths relative to app directory
-TEMP_DIR = os.path.join(APP_DIR, "temp")
-OUTPUT_DIR = os.path.join(APP_DIR, "output")
+TEMP_DIR = os.path.join(DATA_ROOT, "temp")
+OUTPUT_DIR = os.path.join(DATA_ROOT, "output")
 
 # Sonic-annotator paths (relative to app directory)
-SONIC_ANNOTATOR_BIN = os.path.join(APP_DIR, "sonic-annotator", "sonic-annotator")
-SONIC_ANNOTATOR_LIB = os.path.join(APP_DIR, "sonic-annotator")
-VAMP_PATH = os.path.join(APP_DIR, "vamp_plugins")
+_SONIC_ANNOTATOR_DIR = os.path.join(APP_DIR, "sonic-annotator")
+_SONIC_ANNOTATOR_NAME = "sonic-annotator.exe" if os.name == "nt" else "sonic-annotator"
+SONIC_ANNOTATOR_BIN = os.environ.get(
+    "YOUCHORDS_SONIC_ANNOTATOR_BIN",
+    os.path.join(_SONIC_ANNOTATOR_DIR, _SONIC_ANNOTATOR_NAME),
+)
+SONIC_ANNOTATOR_LIB = os.environ.get("YOUCHORDS_SONIC_ANNOTATOR_LIB", _SONIC_ANNOTATOR_DIR)
+VAMP_PATH = os.environ.get("YOUCHORDS_VAMP_PATH", os.path.join(APP_DIR, "vamp_plugins"))
 SONIC_ANNOTATOR_VERBOSE = os.environ.get("SONIC_ANNOTATOR_VERBOSE", "0").strip().lower() in {
     "1",
     "true",
@@ -211,7 +217,10 @@ def extract_regular_harmonic(wav_file):
             return None, None
         
         env = os.environ.copy()
-        env["LD_LIBRARY_PATH"] = SONIC_ANNOTATOR_LIB
+        if os.name == "nt":
+            env["PATH"] = SONIC_ANNOTATOR_LIB + os.pathsep + env.get("PATH", "")
+        else:
+            env["LD_LIBRARY_PATH"] = SONIC_ANNOTATOR_LIB
         env["VAMP_PATH"] = VAMP_PATH
         
         wav_filename = os.path.basename(wav_file).replace('.wav', '')

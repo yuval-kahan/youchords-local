@@ -9,6 +9,8 @@ services:
     environment:
       YOUCHORDS_REGULAR_ENGINE: madmom
       YOUCHORDS_LOCAL_PORT: "8765"
+      YOUCHORDS_LOCAL_HOST: "0.0.0.0"
+      YOUCHORDS_YTDLP_DATA_DIR: "/app/output/yt-dlp"
       YOUCHORDS_LOCAL_MAX_QUEUE: "8"
       YOUCHORDS_LOCAL_MAX_RETAINED_JOBS: "200"
       YOUCHORDS_DEMUCS_MODEL: "htdemucs_6s"

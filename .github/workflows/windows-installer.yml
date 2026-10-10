@@ -1,0 +1,135 @@
+name: Build YouChords Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'windows-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    steps:
+      - name: Check out YouChords
+        uses: actions/checkout@v4
+
+      - name: Set up Python for Windows native wheels
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install the x64 MinGW toolchain
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-boost
+
+      - name: Build the official 64-bit Chordino Vamp plugin
+        shell: msys2 {0}
+        run: bash scripts/build_nnls_chroma_windows.sh
+
+      - name: Build Python 3.10 wheels for madmom and Vamp
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path payload\wheels | Out-Null
+          python -m pip install --upgrade pip
+          python -m pip install 'setuptools<81' wheel 'Cython<3' 'numpy==1.26.4' 'scipy<2' mido
+          $env:CL = '/Dssize_t=__int64'
+          python -m pip wheel --no-deps --no-build-isolation --wheel-dir payload\wheels 'madmom==0.16.1' 'vamp==1.1.0'
+          if ($LASTEXITCODE -ne 0) { throw 'Could not build the Windows madmom/Vamp wheels.' }
+
+      - name: Download and verify Windows runtime components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $payload = Join-Path $env:GITHUB_WORKSPACE 'payload'
+          $sonicZip = Join-Path $env:RUNNER_TEMP 'sonic-annotator-1.7-win64.zip'
+          New-Item -ItemType Directory -Force -Path (Join-Path $payload 'sonic-annotator'), (Join-Path $payload 'node') | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/sonic-visualiser/sonic-annotator/releases/download/sonic-annotator-1.7/sonic-annotator-1.7-win64.zip' -OutFile $sonicZip
+          $sonicHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sonicZip).Hash
+          if ($sonicHash -ne 'C40717E029210CF1E1C97BC7DADEA00CF4386327E67FDF9CA66027A91EA26693') { throw 'Sonic Annotator archive hash did not match the pinned official release.' }
+          $sonicExtract = Join-Path $env:RUNNER_TEMP 'sonic-annotator'
+          Expand-Archive -LiteralPath $sonicZip -DestinationPath $sonicExtract -Force
+          Copy-Item -Path (Join-Path $sonicExtract 'sonic-annotator-win64\*') -Destination (Join-Path $payload 'sonic-annotator') -Recurse -Force
+
+          $nodeVersion = 'v22.23.3'
+          $nodeArchiveName = "node-$nodeVersion-win-x64.zip"
+          $nodeBase = "https://nodejs.org/dist/$nodeVersion"
+          $nodeZip = Join-Path $env:RUNNER_TEMP $nodeArchiveName
+          Invoke-WebRequest -Uri "$nodeBase/$nodeArchiveName" -OutFile $nodeZip
+          $checksums = (Invoke-WebRequest -Uri "$nodeBase/SHASUMS256.txt").Content
+          $line = $checksums -split "`n" | Where-Object { $_ -match ([regex]::Escape($nodeArchiveName) + '\s*$') } | Select-Object -First 1
+          if (-not $line) { throw 'Could not find the official Node.js archive checksum.' }
+          $expectedNodeHash = ($line.Trim() -split '\s+')[0].ToUpperInvariant()
+          $actualNodeHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nodeZip).Hash
+          if ($actualNodeHash -ne $expectedNodeHash) { throw 'Node.js archive hash did not match its official checksum.' }
+          $nodeExtract = Join-Path $env:RUNNER_TEMP 'node'
+          Expand-Archive -LiteralPath $nodeZip -DestinationPath $nodeExtract -Force
+          $nodeSource = Join-Path $nodeExtract "node-$nodeVersion-win-x64"
+          Copy-Item -LiteralPath (Join-Path $nodeSource 'node.exe') -Destination (Join-Path $payload 'node\node.exe')
+          Copy-Item -Path (Join-Path $nodeSource 'LICENSE*') -Destination (Join-Path $payload 'node') -Force
+
+          python -m pip install 'uv==0.13.0'
+          $uvPath = (Get-Command uv.exe).Source
+          Copy-Item -LiteralPath $uvPath -Destination (Join-Path $payload 'uv.exe') -Force
+          $licenses = Join-Path $payload 'licenses'
+          New-Item -ItemType Directory -Force -Path $licenses | Out-Null
+          $sitePackages = (python -c 'import site; print(site.getsitepackages()[0])').Trim()
+          $uvLicenses = @(Get-ChildItem -Path $sitePackages -Filter 'LICENSE*' -File -Recurse | Where-Object { $_.FullName -match 'uv-0\.13\.0\.dist-info' })
+          if ($uvLicenses.Count -eq 0) { throw 'The uv license files were not found in the installed distribution.' }
+          $uvLicenses | Copy-Item -Destination $licenses -Force
+          $licenses = Join-Path $payload 'licenses'
+          New-Item -ItemType Directory -Force -Path $licenses | Out-Null
+          $sitePackages = (python -c 'import site; print(site.getsitepackages()[0])').Trim()
+          $uvLicenses = @(Get-ChildItem -Path $sitePackages -Filter 'LICENSE*' -File -Recurse | Where-Object { $_.FullName -match 'uv-0\.13\.0\.dist-info' })
+          if ($uvLicenses.Count -eq 0) { throw 'The uv license files were not found in the installed distribution.' }
+          $uvLicenses | Copy-Item -Destination $licenses -Force
+
+          New-Item -ItemType Directory -Force -Path (Join-Path $payload 'processor') | Out-Null
+          Copy-Item chord-extractor-clean\*.py (Join-Path $payload 'processor') -Force
+          Copy-Item chord-extractor-clean\requirements.windows.txt (Join-Path $payload 'processor') -Force
+
+          $annotatorExe = Join-Path $payload 'sonic-annotator\sonic-annotator.exe'
+          if (-not (Test-Path -LiteralPath $annotatorExe -PathType Leaf)) { throw 'The official Sonic Annotator archive did not contain sonic-annotator.exe.' }
+          if (-not (Test-Path -LiteralPath (Join-Path $payload 'vamp_plugins_windows\nnls-chroma.dll') -PathType Leaf)) { throw 'The Windows Chordino plugin was not built.' }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Compile YouChords-Local-Windows-Setup.exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:YOUCHORDS_WINDOWS_PAYLOAD = Join-Path $env:GITHUB_WORKSPACE 'payload'
+          $inno = Join-Path ([Environment]::GetEnvironmentVariable('ProgramFiles(x86)')) 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path -LiteralPath $inno -PathType Leaf)) { throw 'Inno Setup compiler was not installed.' }
+          & $inno 'packaging\windows\YouChordsWindows.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup could not compile the installer.' }
+          $installer = Join-Path $env:GITHUB_WORKSPACE 'dist\YouChords-Local-Windows-Setup.exe'
+          if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) { throw 'The Windows installer file was not created.' }
+
+      - name: Upload the compiled installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: YouChords-Local-Windows-Setup
+          path: dist/YouChords-Local-Windows-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish the Windows installer release
+        if: startsWith(github.ref, 'refs/tags/windows-v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          gh release create $tag 'dist/YouChords-Local-Windows-Setup.exe' --title "YouChords Local Windows $tag" --notes 'Windows-native local processor installer. The existing Docker processor remains available on port 8765; the Windows processor uses port 8766. Choose the processor in the extension popup.' --verify-tag

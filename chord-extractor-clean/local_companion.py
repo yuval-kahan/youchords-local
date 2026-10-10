@@ -27,14 +27,20 @@ from flask import Flask, Response, jsonify, request, send_file, stream_with_cont
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 import main as chord_engine
+from yt_dlp_updates import YtDlpUpdateManager, yt_dlp_command
 
 
 APP_DIR = Path(__file__).resolve().parent
-TEMP_ROOT = APP_DIR / "temp"
-RESULTS_DIR = APP_DIR / "output" / "chords"
-SEPARATION_CACHE_ROOT = APP_DIR / "output" / "separation"
-TRANSCRIPTION_CACHE_ROOT = APP_DIR / "output" / "transcriptions"
+DATA_ROOT = Path(os.environ.get("YOUCHORDS_LOCAL_DATA_DIR", str(APP_DIR))).expanduser().resolve()
+TEMP_ROOT = DATA_ROOT / "temp"
+RESULTS_DIR = DATA_ROOT / "output" / "chords"
+SEPARATION_CACHE_ROOT = DATA_ROOT / "output" / "separation"
+TRANSCRIPTION_CACHE_ROOT = DATA_ROOT / "output" / "transcriptions"
+YTDLP_DATA_DIR = Path(
+    os.environ.get("YOUCHORDS_YTDLP_DATA_DIR", str(DATA_ROOT / "output" / "yt-dlp"))
+).expanduser().resolve()
 PORT = int(os.environ.get("YOUCHORDS_LOCAL_PORT", "8765"))
+HOST = str(os.environ.get("YOUCHORDS_LOCAL_HOST", "0.0.0.0")).strip() or "0.0.0.0"
 MAX_QUEUE_SIZE = max(1, int(os.environ.get("YOUCHORDS_LOCAL_MAX_QUEUE", "8")))
 JOB_RETENTION_SECONDS = max(300, int(os.environ.get("YOUCHORDS_LOCAL_JOB_RETENTION_SEC", "86400")))
 MAX_RETAINED_JOBS = max(16, int(os.environ.get("YOUCHORDS_LOCAL_MAX_RETAINED_JOBS", "200")))
@@ -53,7 +59,7 @@ VOCAL_MUSIC_MODEL = str(
 MELBAND_MODEL_ROOT = Path(
     os.environ.get(
         "YOUCHORDS_MELBAND_MODEL_ROOT",
-        str(APP_DIR / "output" / "models" / "melband"),
+        str(DATA_ROOT / "output" / "models" / "melband"),
     )
 ).resolve()
 SEPARATION_STEMS = ("vocals", "instrumental", "drums", "bass", "guitar", "piano", "other")
@@ -62,7 +68,7 @@ WHISPER_DEVICE = str(os.environ.get("YOUCHORDS_WHISPER_DEVICE", "cuda")).strip()
 WHISPER_ENGINE = str(os.environ.get("YOUCHORDS_WHISPER_ENGINE", "whisperx")).strip().lower() or "whisperx"
 WHISPERX_BATCH_SIZE = max(1, int(os.environ.get("YOUCHORDS_WHISPERX_BATCH_SIZE", "8")))
 WHISPER_MODEL_ROOT = Path(
-    os.environ.get("YOUCHORDS_WHISPER_MODEL_ROOT", "/root/.cache/torch/whisper")
+    os.environ.get("YOUCHORDS_WHISPER_MODEL_ROOT", str(DATA_ROOT / "models" / "whisper"))
 ).resolve()
 WHISPER_MODELS = {"tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3", "turbo"}
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
@@ -77,6 +83,7 @@ TEMP_ROOT.mkdir(parents=True, exist_ok=True)
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 SEPARATION_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
 TRANSCRIPTION_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+UPDATE_MANAGER = YtDlpUpdateManager(YTDLP_DATA_DIR)
 
 class ProcessingQueue:
     """A FIFO queue for the expensive chord, Whisper, and separation stages."""
@@ -943,7 +950,7 @@ def _download_transcription_audio(job_id: str, video_id: str, work_dir: Path) ->
     output_template = str(work_dir / "audio.%(ext)s")
     log_path = work_dir / "yt-dlp.log"
     command = [
-        "yt-dlp",
+        *yt_dlp_command(),
         "--no-playlist",
         "--no-progress",
         "--js-runtimes",
@@ -1226,7 +1233,7 @@ def _download_subflow_audio(job_id: str, video_id: str, work_dir: Path) -> Path:
     output_template = str(work_dir / "audio.%(ext)s")
     log_path = work_dir / "yt-dlp.log"
     command = [
-        "yt-dlp",
+        *yt_dlp_command(),
         "--no-playlist",
         "--no-progress",
         "--js-runtimes",
@@ -1285,7 +1292,7 @@ def _download_separation_audio(job_id: str, video_id: str, work_dir: Path) -> Pa
     output_template = str(work_dir / "audio.%(ext)s")
     log_path = work_dir / "yt-dlp.log"
     command = [
-        "yt-dlp",
+        *yt_dlp_command(),
         "--no-playlist",
         "--no-progress",
         "--js-runtimes",
@@ -1636,7 +1643,7 @@ def _download_and_convert(job_id: str, video_id: str, work_dir: Path) -> Path:
     download_log = work_dir / "yt-dlp.log"
     youtube_url = f"https://www.youtube.com/watch?v={video_id}"
     download_command = [
-        "yt-dlp",
+        *yt_dlp_command(),
         "--no-playlist",
         "--no-progress",
         "--js-runtimes",
@@ -1812,12 +1819,41 @@ def health():
                 "activeJobs": active_transcription,
                 "cachedLocally": True,
             },
+            "ytDlp": UPDATE_MANAGER.get_status(),
         }
     )
 
 
+@app.get("/v1/updates/yt-dlp")
+def yt_dlp_update_status():
+    return jsonify({"success": True, "update": UPDATE_MANAGER.check_if_due()})
+
+
+def _active_job_count() -> int:
+    active = 0
+    with job_lock:
+        active += sum(job.get("status") in {"queued", "downloading", "converting", "analyzing"} for job in jobs.values())
+    with transcription_job_lock:
+        active += sum(job.get("status") not in TRANSCRIPTION_TERMINAL_STATES for job in transcription_jobs.values())
+    with separation_job_lock:
+        active += sum(job.get("status") not in SEPARATION_TERMINAL_STATES for job in separation_jobs.values())
+    with subflow_job_lock:
+        active += sum(job.get("status") not in SUBFLOW_TERMINAL_STATES for job in subflow_jobs.values())
+    return active
+
+
+@app.post("/v1/updates/yt-dlp/install")
+def install_yt_dlp_update():
+    if _active_job_count():
+        return jsonify({"success": False, "error": "Wait for local processing jobs to finish, then approve the update"}), 409
+    result, status_code = UPDATE_MANAGER.install_latest()
+    return jsonify(result), status_code
+
+
 @app.post("/v1/jobs")
 def create_job():
+    if UPDATE_MANAGER.get_status()["installing"]:
+        return jsonify({"success": False, "error": "A yt-dlp update is being installed; try again shortly"}), 503
     _prune_jobs()
     payload = request.get_json(silent=True) or {}
     video_id = str(payload.get("videoId") or "").strip()
@@ -1890,6 +1926,8 @@ def cancel_job(job_id: str):
 
 @app.post("/v1/transcription/jobs")
 def create_transcription_job():
+    if UPDATE_MANAGER.get_status()["installing"]:
+        return jsonify({"success": False, "error": "A yt-dlp update is being installed; try again shortly"}), 503
     _prune_transcription_jobs()
     payload = request.get_json(silent=True) or {}
     video_id = str(payload.get("videoId") or "").strip()
@@ -2002,6 +2040,8 @@ def cancel_transcription_job(job_id: str):
 
 @app.post("/v1/separation/jobs")
 def create_separation_job():
+    if UPDATE_MANAGER.get_status()["installing"]:
+        return jsonify({"success": False, "error": "A yt-dlp update is being installed; try again shortly"}), 503
     _prune_separation_jobs()
     payload = request.get_json(silent=True) or {}
     video_id = str(payload.get("videoId") or "").strip()
@@ -2139,6 +2179,8 @@ def get_separation_stem(job_id: str, stem: str):
 
 @app.post("/v1/subflow/jobs")
 def create_subflow_job():
+    if UPDATE_MANAGER.get_status()["installing"]:
+        return jsonify({"success": False, "error": "A yt-dlp update is being installed; try again shortly"}), 503
     _prune_subflow_jobs()
     payload = request.get_json(silent=True) or {}
     video_id = str(payload.get("videoId") or "").strip()
@@ -2292,4 +2334,5 @@ def _cleanup_stale_temp() -> None:
 if __name__ == "__main__":
     _cleanup_stale_temp()
     chord_engine.warm_madmom_regular_processor()
-    app.run(host="0.0.0.0", port=PORT, threaded=True, use_reloader=False)
+    UPDATE_MANAGER.start_daily_checks()
+    app.run(host=HOST, port=PORT, threaded=True, use_reloader=False)

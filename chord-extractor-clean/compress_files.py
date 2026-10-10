@@ -5,9 +5,10 @@ import time
 
 # Get the directory where this script is located
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_ROOT = os.path.abspath(os.environ.get("YOUCHORDS_LOCAL_DATA_DIR", APP_DIR))
 
 # Paths relative to app directory
-OUTPUT_DIR = os.path.join(APP_DIR, "output")
+OUTPUT_DIR = os.path.join(DATA_ROOT, "output")
 CHORDS_DIR = os.path.join(OUTPUT_DIR, "chords")
 LYRICS_DIR = os.path.join(OUTPUT_DIR, "lyrics")
 

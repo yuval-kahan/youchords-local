@@ -7,7 +7,8 @@
  * WAV stems with the YouTube video timeline.
  * ========================================================================== */
 
-const YC_LOCAL_SEPARATION_API = 'http://127.0.0.1:8765/v1';
+import { getLocalApiBase } from '../utils/localProcessorConfig.js';
+
 const YC_VOCAL_MUSIC_MODEL = 'melband-roformer-kim-vocals';
 const YC_INSTRUMENT_MODEL = 'htdemucs_6s';
 const YC_SEPARATION_STEMS = [
@@ -72,7 +73,7 @@ function sleep(ms) {
 }
 
 async function fetchJson(path, options = {}) {
-  const response = await fetch(`${YC_LOCAL_SEPARATION_API}${path}`, {
+  const response = await fetch(`${await getLocalApiBase()}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -422,6 +423,7 @@ async function loadPlayersForMode(mode, selectedInstruments = []) {
   updateLoadingState(true, { status: 'loading', progress: 100 });
   const initialTime = Math.max(0, video.currentTime || 0);
   const loadPromises = [];
+  const apiBase = await getLocalApiBase();
   available.forEach(stem => {
     const player = new Audio();
     player.preload = 'auto';
@@ -430,7 +432,7 @@ async function loadPlayersForMode(mode, selectedInstruments = []) {
     // the actual video finishes.
     player.loop = true;
     player.crossOrigin = 'anonymous';
-    player.src = new URL(stems[stem], `${YC_LOCAL_SEPARATION_API}/`).href;
+    player.src = new URL(stems[stem], `${apiBase}/`).href;
     player.currentTime = initialTime;
     player.playbackRate = video.playbackRate || 1;
     player.volume = Math.max(0, Math.min(1, Number(video.volume ?? 1) / Math.sqrt(available.length)));

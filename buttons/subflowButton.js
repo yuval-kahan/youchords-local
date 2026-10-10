@@ -15,8 +15,8 @@ import {
   saveGeminiPipelineSettings,
   upsertGeminiApiKey
 } from '../utils/subflowGeminiPipeline.js';
+import { getLocalProcessorRoot } from '../utils/localProcessorConfig.js';
 
-const SUBFLOW_LOCAL_API = 'http://127.0.0.1:8765';
 const SUBFLOW_TERMINAL_STATES = new Set([
   'prepared',
   'completed',
@@ -291,7 +291,7 @@ function downloadText(text, filename) {
 }
 
 async function apiFetch(path, options = {}) {
-  const response = await fetch(`${SUBFLOW_LOCAL_API}${path}`, {
+  const response = await fetch(`${await getLocalProcessorRoot()}${path}`, {
     ...options,
     signal: options.signal || subflowUi.controller?.signal,
     headers: {
@@ -595,7 +595,8 @@ async function stopGeminiPipeline() {
   if (!job || job.status !== 'running') return;
 
   if (job.subflowJobId) {
-    fetch(`${SUBFLOW_LOCAL_API}/v1/subflow/jobs/${job.subflowJobId}`, { method: 'DELETE' })
+    getLocalProcessorRoot()
+      .then(root => fetch(`${root}/v1/subflow/jobs/${job.subflowJobId}`, { method: 'DELETE' }))
       .catch(() => {});
   }
   subflowUi.geminiController?.abort();
@@ -650,7 +651,7 @@ async function waitForSubflowJob(jobId, signal) {
 
 async function fetchSubflowOutputText(output, signal) {
   if (!output?.url) return '';
-  const response = await fetch(`${SUBFLOW_LOCAL_API}${output.url}`, { signal });
+  const response = await fetch(`${await getLocalProcessorRoot()}${output.url}`, { signal });
   if (!response.ok) {
     throw new Error(`Could not download Subflow output (${response.status})`);
   }

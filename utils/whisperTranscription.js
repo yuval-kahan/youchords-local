@@ -6,7 +6,8 @@
  * sentence/word SRT for IndexedDB.
  * ========================================================================== */
 
-const YC_LOCAL_WHISPER_API = 'http://127.0.0.1:8765/v1';
+import { getLocalApiBase } from './localProcessorConfig.js';
+
 const YC_WHISPER_MODEL = 'large-v2';
 const YC_WHISPER_TERMINAL_STATES = new Set(['completed', 'failed', 'cancelled']);
 const YC_WHISPER_LANGUAGE_STORAGE_KEY = 'whisperSubtitleLanguage';
@@ -128,7 +129,7 @@ function sleep(ms, signal) {
 }
 
 async function fetchJson(path, options = {}) {
-  const response = await fetch(`${YC_LOCAL_WHISPER_API}${path}`, {
+  const response = await fetch(`${await getLocalApiBase()}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -172,7 +173,7 @@ function emitProgress(job) {
 function getWhisperError(error) {
   const detail = String(error?.message || error || '').trim();
   if (detail.includes('Failed to fetch')) {
-    return new Error('YouChords Local לא פועל. הפעל את Docker עם scripts/start_youchords_local.ps1.');
+    return new Error('מעבד YouChords Local שנבחר אינו פועל. הפעל אותו ובדוק שוב.');
   }
   return error;
 }
@@ -229,7 +230,7 @@ window.ycWhisperTranscription = {
   model: YC_WHISPER_MODEL,
   modelStorageKey: YC_WHISPER_MODEL_STORAGE_KEY,
   modelOptions: YC_WHISPER_MODEL_OPTIONS,
-  apiBase: YC_LOCAL_WHISPER_API,
+  getApiBase: getLocalApiBase,
   languageStorageKey: YC_WHISPER_LANGUAGE_STORAGE_KEY,
   languageOptions: YC_WHISPER_LANGUAGE_OPTIONS,
   normalizeModel: normalizeWhisperModelPreference,

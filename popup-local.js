@@ -1,4 +1,10 @@
 import { localProcessingClient } from './utils/localProcessingClient.js';
+import {
+  getLocalApiBase,
+  getPreferredLocalProcessor,
+  LOCAL_PROCESSORS,
+  setPreferredLocalProcessor
+} from './utils/localProcessorConfig.js';
 
 const START_COMMAND = 'powershell -ExecutionPolicy Bypass -File .\\scripts\\start_youchords_local.ps1';
 const COLLAPSED_KEY = 'geminiApiSectionCollapsed';
@@ -24,6 +30,9 @@ const elements = {
   statusDetail: document.getElementById('statusDetail'),
   engineDetails: document.getElementById('engineDetails'),
   startHelp: document.getElementById('startHelp'),
+  startHelpMessage: document.getElementById('startHelpMessage'),
+  processorSelect: document.getElementById('processorSelect'),
+  ytDlpUpdates: document.getElementById('ytDlpUpdates'),
   refreshStatus: document.getElementById('refreshStatus'),
   copyCommand: document.getElementById('copyCommand'),
   apiKeySection: document.getElementById('apiKeySection'),
@@ -54,6 +63,7 @@ const elements = {
 
 let hasApiKey = false;
 let currentMode = 'off';
+let selectedProcessor = 'docker';
 
 function setEngineState(state, title, description) {
   elements.statusDot.className = `local-status-dot ${state}`;
@@ -63,9 +73,11 @@ function setEngineState(state, title, description) {
 
 async function refreshHealth() {
   elements.refreshStatus.disabled = true;
-  setEngineState('checking', 'Checking Docker...', 'Connecting on this computer');
+  const processor = LOCAL_PROCESSORS[selectedProcessor];
+  setEngineState('checking', `Checking ${processor.label}...`, 'Connecting on this computer');
   elements.engineDetails.hidden = true;
   elements.startHelp.hidden = true;
+  elements.copyCommand.hidden = selectedProcessor !== 'docker';
 
   try {
     const health = await localProcessingClient.getHealth();
@@ -79,11 +91,103 @@ async function refreshHealth() {
       );
       elements.engineDetails.hidden = false;
     } else {
-      setEngineState('offline', 'Docker is not running', 'Start the local processor, then check again');
+      setEngineState('offline', `${processor.label} processor is not running`, 'Start the selected local processor, then check again');
+      elements.startHelpMessage.textContent = selectedProcessor === 'docker'
+        ? 'Start the Docker processor from the repository.'
+        : 'Start the YouChords Windows processor from the Start menu.';
       elements.startHelp.hidden = false;
     }
   } finally {
     elements.refreshStatus.disabled = false;
+  }
+}
+
+async function fetchUpdateStatus(processorId) {
+  const apiBase = await getLocalApiBase(processorId);
+  const response = await fetch(`${apiBase}/updates/yt-dlp`);
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (_) {
+    payload = null;
+  }
+  if (!response.ok || !payload?.success || !payload.update) {
+    throw new Error(payload?.error || `Update status unavailable (${response.status})`);
+  }
+  return payload.update;
+}
+
+async function installYtDlpUpdate(processorId, button) {
+  button.disabled = true;
+  button.textContent = 'Installing update...';
+  try {
+    const apiBase = await getLocalApiBase(processorId);
+    const response = await fetch(`${apiBase}/updates/yt-dlp/install`, { method: 'POST' });
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (_) {
+      payload = null;
+    }
+    if (!response.ok || !payload?.success) {
+      throw new Error(payload?.error || `Update failed (${response.status})`);
+    }
+    await refreshUpdateCards();
+  } catch (error) {
+    button.disabled = false;
+    const card = button.closest('.local-yt-dlp-update');
+    card?.classList.add('error');
+    let detail = card?.querySelector('.local-update-error');
+    if (card && !detail) {
+      detail = document.createElement('div');
+      detail.className = 'local-update-error';
+      card.insertBefore(detail, button);
+    }
+    if (detail) detail.textContent = error.message || 'Could not install update';
+    button.textContent = 'Try again';
+  }
+}
+
+async function refreshUpdateCards() {
+  elements.ytDlpUpdates.replaceChildren();
+  const updates = await Promise.all(Object.keys(LOCAL_PROCESSORS).map(async (processorId) => {
+    try {
+      return { processorId, status: await fetchUpdateStatus(processorId) };
+    } catch (_) {
+      return null;
+    }
+  }));
+
+  let updateAvailable = false;
+  for (const entry of updates) {
+    if (!entry) continue;
+    const { processorId, status } = entry;
+    const processor = LOCAL_PROCESSORS[processorId];
+    if (!status.updateAvailable && !status.installing) continue;
+    updateAvailable ||= status.updateAvailable;
+
+    const card = document.createElement('div');
+    card.className = 'local-yt-dlp-update';
+    const message = document.createElement('div');
+    message.textContent = status.installing
+      ? `Installing yt-dlp update for ${processor.label}...`
+      : `yt-dlp update available for ${processor.label}: ${status.currentVersion} → ${status.latestVersion}`;
+    card.append(message);
+
+    if (status.updateAvailable && !status.installing) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `Approve & install on ${processor.label}`;
+      button.addEventListener('click', () => installYtDlpUpdate(processorId, button));
+      card.append(button);
+    }
+    elements.ytDlpUpdates.append(card);
+  }
+
+  try {
+    await chrome.runtime.sendMessage({ action: 'localUpdateStatus', updateAvailable });
+  } catch (_) {
+    // The badge is a convenience; the update card remains available here.
   }
 }
 
@@ -419,7 +523,13 @@ async function copyStartCommand() {
 
 async function init() {
   elements.version.textContent = `v${chrome.runtime.getManifest().version}`;
+  selectedProcessor = await getPreferredLocalProcessor();
+  elements.processorSelect.value = selectedProcessor;
   elements.refreshStatus.addEventListener('click', refreshHealth);
+  elements.processorSelect.addEventListener('change', async () => {
+    selectedProcessor = await setPreferredLocalProcessor(elements.processorSelect.value);
+    await Promise.all([refreshHealth(), refreshUpdateCards()]);
+  });
   elements.copyCommand.addEventListener('click', copyStartCommand);
   elements.saveApiKey.addEventListener('click', handleSaveApiKey);
   elements.clearApiKey.addEventListener('click', handleClearApiKey);
@@ -468,7 +578,13 @@ async function init() {
     elements.helpPanel.hidden = true;
   });
 
-  await Promise.all([refreshHealth(), loadGeminiSettings(), loadWordTranslationSettings(), loadHarmonyMapSetting()]);
+  await Promise.all([
+    refreshHealth(),
+    refreshUpdateCards(),
+    loadGeminiSettings(),
+    loadWordTranslationSettings(),
+    loadHarmonyMapSetting()
+  ]);
 }
 
 void init();

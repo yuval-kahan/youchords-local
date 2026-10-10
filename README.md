@@ -8,19 +8,9 @@
   A local-first Chrome extension that adds synchronized chords, lyrics, word-level transcription, audio tools, and guitar practice controls to YouTube.
 </p>
 
-# ⚠️ Keep `yt-dlp` current
+# `yt-dlp` updates
 
-`yt-dlp` downloads the video's audio, and YouTube changes can make older versions stop working. The local Docker processor installs the latest `yt-dlp` version allowed by `chord-extractor-clean/requirements.local.txt` when its image is rebuilt. This update happens at build time: a running container does not update itself, and Docker may reuse a cached build layer.
-
-If YouTube downloads fail, rebuild the processor without Docker's build cache:
-
-```powershell
-docker compose -f docker-compose.local.yml build --no-cache youchords-local
-docker compose -f docker-compose.local.yml up -d
-docker compose -f docker-compose.local.yml exec youchords-local yt-dlp --version
-```
-
-Then check the installed version with the command above. Rebuilding the extension itself does not update `yt-dlp`.
+The local processor checks PyPI for a newer `yt-dlp` version once a day while it is running. The extension marks its icon when an update is available and shows an approval button in the popup. The update is installed only after you choose that button. An update waits until current processing jobs finish; it does not rebuild the Docker image or replace the Windows installation.
 
 ---
 
@@ -32,7 +22,7 @@ YouChords turns a YouTube music video into a practice workspace without sending 
 - Shows subtitles and chords together in a focused practice panel.
 - Creates local WhisperX transcripts with sentence and word timestamps.
 - Lets you choose **Whisper large-v2** or **Whisper large-v3** in **Chords → Subtitles In Chords**.
-- Uses the GPU for WhisperX inference when Docker has GPU access; an RTX 4090 is an excellent fit.
+- Uses an NVIDIA GPU for WhisperX and audio separation when available in the selected processor.
 - Stores chord and transcription results locally, so returning to the same video/model/language can reuse the cache.
 - Adds audio separation, tuner, chord explorer, transposition, capo, pitch/speed controls, and jam-session tools.
 
@@ -83,14 +73,21 @@ YouChords turns a YouTube music video into a practice workspace without sending 
 
 ## Quick start on Windows
 
-### 1. Prerequisites
+Choose either processor. Both can be installed at once and use separate local addresses.
 
 - Google Chrome or another Chromium browser.
-- Docker Desktop with its WSL 2 backend running.
-- An NVIDIA GPU with Docker GPU support. The included compose file requests `gpus: all` for Whisper transcription and audio separation.
-- The first processor build downloads Python dependencies and AI models, so it can take a while and needs a reliable internet connection.
+- An NVIDIA GPU and a current NVIDIA driver for GPU accelerated transcription and audio separation.
+- A reliable internet connection for the first installation and model downloads.
 
-### 2. Start the local processor
+### Windows installer
+
+Download and run [YouChords-Local-Windows-Setup.exe](https://github.com/yuval-kahan/youchords-local/releases/latest/download/YouChords-Local-Windows-Setup.exe). It installs the Windows processor for the current user, starts it at sign-in, and uses port `8766`. The first setup downloads a private Python runtime and the AI packages, so allow time and several gigabytes of free disk space.
+
+In the extension popup, choose **Windows · port 8766** under **PROCESSOR**.
+
+### Docker processor
+
+Install Docker Desktop with its WSL 2 backend and NVIDIA GPU support. Then start the processor:
 
 ```powershell
 .\scripts\start_youchords_local.ps1
@@ -102,24 +99,26 @@ Check that it is ready:
 Invoke-RestMethod http://127.0.0.1:8765/v1/health
 ```
 
-The endpoint should respond with the processor health status. The configured transcription engine is `whisperx` and it uses CUDA when Docker can access your NVIDIA GPU.
+The Docker processor keeps using port `8765`. In the extension popup, choose **Docker · port 8765** under **PROCESSOR**. The initial Docker build downloads dependencies and may take a while.
 
-### 3. Load the extension in Chrome
+### Load the extension in Chrome
 
 Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the repository folder containing `manifest.json`.
 
 Open a YouTube music video and use the YouChords buttons next to the player controls.
 
+If both processors are running, the popup's **PROCESSOR** selector decides which one handles new work. Results and caches stay separate for each installation.
+
 ## Install with Codex or another AI coding assistant
 
-Codex can help clone the repository, start the local Docker processor, and guide you through loading the extension. The first Docker build downloads dependencies and may take a while. The extension must still be loaded in Chrome from the repository folder containing `manifest.json`.
+Codex can help install either local processor and guide you through loading the extension. The first setup downloads dependencies and may take a while. The extension must still be loaded in Chrome from the repository folder containing `manifest.json`.
 
 If the repository is not already open in Codex, ask it to clone `https://github.com/yuval-kahan/youchords-local` into your workspace. Then paste this prompt:
 
 ```text
 Set up YouChords Local from this repository for local use on this computer.
 
-Read the README and inspect the setup script before running it. Check that Docker Desktop is available. On Windows, start the local processor with .\scripts\start_youchords_local.ps1, then check http://127.0.0.1:8765/v1/health and report whether it is ready. Tell me if a required prerequisite is missing.
+Read the README and inspect the relevant installer or setup script before running it. Ask whether I want the Windows installer or Docker. For the Windows installer, download YouChords-Local-Windows-Setup.exe from the latest GitHub release and run it, then check http://127.0.0.1:8766/v1/health. For Docker, check that Docker Desktop is available, run .\scripts\start_youchords_local.ps1, then check http://127.0.0.1:8765/v1/health. Report whether the selected processor is ready and tell me if a prerequisite is missing.
 
 After the processor is ready, guide me to chrome://extensions, enable Developer mode, choose Load unpacked, and select this repository's root folder containing manifest.json. If you cannot control Chrome, give me those steps clearly.
 
@@ -141,10 +140,11 @@ Both choices use the same local **WhisperX** workflow. WhisperX creates word-lev
 
 ## Local processing and cache
 
-The local companion service runs at `http://127.0.0.1:8765` and handles the expensive tasks in a FIFO queue. This prevents Whisper, chord extraction, and audio separation from fighting for the GPU on long videos.
+The selected local companion service handles expensive tasks in a FIFO queue, so Whisper, chord extraction, and audio separation do not compete for the GPU on long videos. Docker uses `http://127.0.0.1:8765`; the Windows install uses `http://127.0.0.1:8766`.
 
-- **WhisperX models and aligners** are downloaded once into `.youchords-local/models` and `.youchords-local/huggingface`.
-- **Finished transcripts** are cached by video ID, Whisper model, and requested language under `.youchords-local/output`.
+- **Docker models and results** stay in `.youchords-local` beside the repository.
+- **Windows models and results** stay under `%LOCALAPPDATA%\YouChordsLocal`.
+- **Finished transcripts** are cached by video ID, Whisper model, and requested language in the selected processor's data folder.
 - **Browser-side subtitle and chord data** is saved in IndexedDB, so reopening the same video normally reuses the result.
 - If you switch from `large-v2` to `large-v3` (or change the language), a new transcript is expected and correct.
 
@@ -152,20 +152,26 @@ The local companion service runs at `http://127.0.0.1:8765` and handles the expe
 
 ### The local extension says the processor is unavailable
 
+Check that the popup's **PROCESSOR** choice matches the installed processor.
+
+For Docker:
+
 ```powershell
 docker compose -f docker-compose.local.yml ps
 docker compose -f docker-compose.local.yml logs -f youchords-local
 ```
 
-Then check the health endpoint again.
+For Windows, open **Start YouChords Windows Processor** from the Start menu and check `http://127.0.0.1:8766/v1/health` again.
 
 ### Downloads or long-video processing fail
 
-Start with the **critical `yt-dlp` update** at the top of this README. After the rebuild, retry the job. For long videos, leave the page open while the local queue finishes its earlier jobs.
+Open the extension popup and approve any pending `yt-dlp` update. If a job is already running, wait for it to finish and approve again. For long videos, leave the page open while the local queue finishes its earlier jobs.
 
 ### Whisper does not use the GPU
 
-Run the health check. If it does not say `device: cuda`, make sure Docker Desktop can access the NVIDIA GPU, then restart the processor:
+Run the selected processor's health check. If it does not say `device: cuda`, make sure the NVIDIA driver is installed and the selected processor can access the GPU, then restart that processor.
+
+For Docker:
 
 ```powershell
 docker compose -f docker-compose.local.yml down
