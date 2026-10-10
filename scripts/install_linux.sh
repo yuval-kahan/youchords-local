@@ -3,7 +3,33 @@ set -euo pipefail
 
 payload_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 start_service=true
-if [[ "${1:-}" == "--no-start" ]]; then start_service=false; fi
+if [[ "$#" -gt 1 ]]; then
+  echo "Usage: youchords-local-setup [--auto-start|--manual]" >&2
+  exit 2
+fi
+case "${1:-}" in
+  "")
+    if [[ -t 0 ]]; then
+      printf 'Choose when the YouChords processor should run:\n'
+      printf '  1) Start automatically when I sign in (recommended)\n'
+      printf '  2) I will start it manually\n'
+      read -r -p 'Choice [1]: ' startup_choice
+      case "${startup_choice}" in
+        ""|1) start_service=true ;;
+        2) start_service=false ;;
+        *) echo "Choose 1 or 2." >&2; exit 2 ;;
+      esac
+    else
+      echo "No interactive terminal detected; automatic startup is selected. Use --manual to disable it."
+    fi
+    ;;
+  --auto-start) start_service=true ;;
+  --manual|--no-start) start_service=false ;;
+  *)
+    echo "Usage: youchords-local-setup [--auto-start|--manual]" >&2
+    exit 2
+    ;;
+esac
 if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
   echo "This installer supports x86_64 Linux only." >&2
   exit 1
@@ -160,8 +186,15 @@ chmod +x "${HOME}/.local/bin/youchords-linux-status"
 if [[ "${start_service}" == true ]]; then
   systemctl --user daemon-reload
   systemctl --user enable --now youchords-local.service
-  echo "YouChords Linux processor installed. Health: http://127.0.0.1:8767/v1/health"
-  echo "Choose Linux · port 8767 in the extension popup. It starts automatically when you sign in."
+  echo "YouChords Linux processor installed and set to start automatically when you sign in."
+  echo "Health: http://127.0.0.1:8767/v1/health. Choose Linux · port 8767 in the extension popup."
 else
-  echo "Linux runtime installed without starting the user service."
+  if systemctl --user daemon-reload; then
+    systemctl --user disable --now youchords-local.service
+  else
+    echo "The systemd user manager is unavailable in this session; automatic startup could not be changed."
+  fi
+  echo "YouChords Linux processor installed without automatic startup."
+  echo "Start it when needed with: systemctl --user start youchords-local.service"
+  echo "Choose Linux · port 8767 in the extension popup after it starts."
 fi

@@ -1,4 +1,4 @@
-#define AppVersion "2.2.0"
+#define AppVersion "2.3.0"
 #define PayloadDir GetEnv("YOUCHORDS_WINDOWS_PAYLOAD")
 
 [Setup]
@@ -35,9 +35,15 @@ Source: "..\..\scripts\start_windows.ps1"; DestDir: "{app}\scripts"; Flags: igno
 Source: "..\..\scripts\start_windows.vbs"; DestDir: "{app}\scripts"; Flags: ignoreversion
 Source: "YouChords-Windows-Quick-Start.txt"; DestDir: "{app}"; Flags: ignoreversion
 
+[Tasks]
+Name: "autostart"; Description: "Start the processor automatically when I sign in"; GroupDescription: "Startup options:"
+
 [Icons]
 Name: "{group}\Start YouChords Windows Processor"; Filename: "{app}\scripts\start_windows.vbs"; WorkingDir: "{app}"
-Name: "{userstartup}\YouChords Local Windows"; Filename: "{app}\scripts\start_windows.vbs"; WorkingDir: "{app}"
+Name: "{userstartup}\YouChords Local Windows"; Filename: "{app}\scripts\start_windows.vbs"; WorkingDir: "{app}"; Tasks: autostart
+
+[InstallDelete]
+Type: files; Name: "{userstartup}\YouChords Local Windows.lnk"; Tasks: not autostart
 
 [Run]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\install_windows_runtime.ps1"" -AppRoot ""{app}"" -DataRoot ""{localappdata}\YouChordsLocal"""; StatusMsg: "Installing the local Python and AI processing runtime. This may take a while..."; Flags: waituntilterminated

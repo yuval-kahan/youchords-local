@@ -81,7 +81,7 @@ Choose a processor. Docker, Windows, and Linux can be installed at once and use 
 
 ### Windows installer
 
-Download and run [YouChords-Local-Windows-Setup.exe](https://github.com/yuval-kahan/youchords-local/releases/latest/download/YouChords-Local-Windows-Setup.exe). It installs the Windows processor for the current user, starts it at sign-in, and uses port `8766`. The first setup downloads a private Python runtime and the AI packages, so allow time and several gigabytes of free disk space.
+Download and run [YouChords-Local-Windows-Setup.exe](https://github.com/yuval-kahan/youchords-local/releases/latest/download/YouChords-Local-Windows-Setup.exe). During setup, choose whether it should start automatically when you sign in; this option is checked by default on a new installation. The Start menu shortcut remains available for manual launches. The processor uses port `8766`. The first setup downloads a private Python runtime and the AI packages, so allow time and several gigabytes of free disk space.
 
 In the extension popup, choose **Windows · port 8766** under **PROCESSOR**.
 
@@ -96,7 +96,7 @@ Get-CimInstance Win32_Process |
   ForEach-Object { Stop-Process -Id $_.ProcessId }
 ```
 
-To start it again, open **Start YouChords Windows Processor** from the Start menu. To stop it starting when you sign in, press **Win+R**, enter `shell:startup`, and delete the **YouChords Local Windows** shortcut. Run the installer again to restore automatic startup.
+To start it again, open **Start YouChords Windows Processor** from the Start menu. To change the automatic startup choice later, run the installer again and select or clear **Start the processor automatically when I sign in**. You can also press **Win+R**, enter `shell:startup`, and delete the **YouChords Local Windows** shortcut to disable automatic startup.
 
 ### Docker processor
 
@@ -129,7 +129,7 @@ sudo apt install ./youchords-local_*_amd64.deb
 youchords-local-setup
 ```
 
-The setup installs a private Python runtime, detects NVIDIA CUDA support, and installs the matching AI packages. It starts a per-user service at sign-in on port `8767`; without a usable NVIDIA driver it installs the CPU runtime. In the extension popup choose **Linux · port 8767**. Models download on first use, so allow several gigabytes of disk space.
+The setup installs a private Python runtime, detects NVIDIA CUDA support, and installs the matching AI packages. It asks whether to start the per-user service automatically at sign-in; without a usable NVIDIA driver it installs the CPU runtime. The processor uses port `8767`. In the extension popup choose **Linux · port 8767**. Models download on first use, so allow several gigabytes of disk space. For a non-interactive setup, pass `--auto-start` or `--manual` to choose explicitly; `--manual` leaves the service installed but disabled at sign-in.
 
 #### Stop, start, or disable automatic startup
 
@@ -152,6 +152,8 @@ systemctl --user enable --now youchords-local.service
 systemctl --user status youchords-local.service
 ```
 
+If you chose manual startup, start the processor when needed with `systemctl --user start youchords-local.service`. Use the enable/disable commands above to change automatic startup later.
+
 ### Load the extension in Chrome
 
 Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select the repository folder containing `manifest.json`.
@@ -169,7 +171,7 @@ If the repository is not already open in Codex, ask it to clone `https://github.
 ```text
 Set up YouChords Local from this repository for local use on this computer.
 
-Read the README and inspect the relevant installer or setup script before running it. Ask whether I want Windows, Docker, or Linux. For Docker, check that Docker is available, run the operating-system-specific start script, then check http://127.0.0.1:8765/v1/health. For Windows, download and run the latest EXE and check http://127.0.0.1:8766/v1/health. For Linux, install the latest amd64 .deb package and run youchords-local-setup, then check http://127.0.0.1:8767/v1/health. Report whether the selected processor is ready, which accelerator it uses, and any missing prerequisite.
+Read the README and inspect the relevant installer or setup script before running it. Ask whether I want Windows, Docker, or Linux, and let me choose automatic startup or manual launch for Windows and Linux. For Docker, check that Docker is available, run the operating-system-specific start script, then check http://127.0.0.1:8765/v1/health. For Windows, download and run the latest EXE and check http://127.0.0.1:8766/v1/health. For Linux, install the latest amd64 .deb package and run youchords-local-setup with --auto-start or --manual to apply my choice, then check http://127.0.0.1:8767/v1/health. Report whether the selected processor is ready, which accelerator it uses, and any missing prerequisite.
 
 After the processor is ready, guide me to chrome://extensions, enable Developer mode, choose Load unpacked, and select this repository's root folder containing manifest.json. If you cannot control Chrome, give me those steps clearly.
 

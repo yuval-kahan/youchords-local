@@ -2,7 +2,7 @@ YouChords Local for Windows
 
 1. Install this package for the current Windows user. Administrator access is not required.
 2. Keep the YouChords browser extension installed, open its popup, and choose “Windows · port 8766” under PROCESSOR.
-3. The Windows processor starts at sign-in and can also be started from the Start menu.
+3. During installation, choose whether the processor should start automatically when you sign in. You can also start it from the Start menu at any time.
 4. The first setup downloads the local Python and AI packages. The first use of some AI features can also download models.
 5. Docker keeps using port 8765. Both processors can be installed; choose which one the extension should use.
 6. yt-dlp checks for a newer version daily. The extension icon shows an update badge, and the popup asks before installing it.

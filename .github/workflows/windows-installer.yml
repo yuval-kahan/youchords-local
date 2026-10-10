@@ -333,5 +333,5 @@ jobs:
             dist/youchords-local_*_amd64.deb \
             dist/youchords-local_*_amd64.deb.sha256 \
             --title "YouChords Local ${version} installers" \
-            --notes "Tested local processors for Windows, Linux (Ubuntu 24.04 x64), and Docker. NVIDIA CUDA is used when available; all three paths automatically fall back to CPU. Docker uses port 8765, Windows 8766, and Linux 8767. Select an installed processor in the extension popup." \
+            --notes "Tested local processors for Windows, Linux (Ubuntu 24.04 x64), and Docker. The Windows and Linux installers let you choose automatic startup or manual launch. NVIDIA CUDA is used when available; all three paths automatically fall back to CPU. Docker uses port 8765, Windows 8766, and Linux 8767. Select an installed processor in the extension popup." \
             --verify-tag

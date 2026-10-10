@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="${1:-2.2.0}"
+version="${1:-2.3.0}"
 payload_dir="${YOUCHORDS_LINUX_PAYLOAD:-}"
 if [[ -z "${payload_dir}" || ! -x "${payload_dir}/runtime/uv" || ! -x "${payload_dir}/runtime/node/bin/node" ]]; then
   echo "Set YOUCHORDS_LINUX_PAYLOAD to a folder containing runtime/uv and runtime/node/bin/node." >&2
