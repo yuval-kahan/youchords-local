@@ -16,6 +16,9 @@ $cpuRequirements = Join-Path $processorDir 'requirements.windows.cpu.txt'
 $cudaRequirements = Join-Path $processorDir 'requirements.windows.cuda.txt'
 $wheels = Join-Path $AppRoot 'wheels'
 
+New-Item -ItemType Directory -Force -Path $DataRoot | Out-Null
+Start-Transcript -Path (Join-Path $DataRoot 'install-runtime.log') -Append | Out-Null
+
 if (-not (Test-Path -LiteralPath $uv -PathType Leaf)) {
   throw "The bundled uv runtime manager was not found: $uv"
 }
@@ -72,4 +75,5 @@ if ($cudaAvailable) {
 if ($LASTEXITCODE -ne 0) { throw 'Could not install the YouChords packages for the selected CPU/GPU runtime.' }
 
 Write-Host 'Windows local processor packages are ready.' -ForegroundColor Green
+Stop-Transcript | Out-Null
 exit 0

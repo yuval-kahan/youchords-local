@@ -129,17 +129,29 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $installer = Start-Process -FilePath 'dist\YouChords-Local-Windows-Setup.exe' -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -PassThru -Wait
           if ($installer.ExitCode -ne 0) { throw "Windows installer exited with code $($installer.ExitCode)." }
-          $launcher = Join-Path $env:LOCALAPPDATA 'Programs\YouChords Local\scripts\start_windows.ps1'
+          $app = Join-Path $env:LOCALAPPDATA 'Programs\YouChords Local'
+          $data = Join-Path $env:LOCALAPPDATA 'YouChordsLocal'
+          $python = Join-Path $app 'venv\Scripts\python.exe'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
+            $installLog = Join-Path $data 'install-runtime.log'
+            if (Test-Path -LiteralPath $installLog -PathType Leaf) { Get-Content -LiteralPath $installLog -Tail 100 }
+            throw 'The EXE did not finish installing its private Python runtime.'
+          }
+          $launcher = Join-Path $app 'scripts\start_windows.ps1'
           if (-not (Test-Path -LiteralPath $launcher -PathType Leaf)) { throw 'The EXE did not install its Windows processor launcher.' }
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $launcher
+          if ($LASTEXITCODE -ne 0) { throw "Windows processor launcher exited with code $LASTEXITCODE." }
           $health = $null
-          for ($i = 0; $i -lt 120; $i++) {
+          for ($i = 0; $i -lt 60; $i++) {
             try {
               $health = Invoke-RestMethod -Uri 'http://127.0.0.1:8766/v1/health' -TimeoutSec 3
               if ($health.success) { break }
             } catch { Start-Sleep -Seconds 5 }
           }
-          if (-not $health.success) { throw 'The Windows EXE did not start a healthy processor.' }
+          if (-not $health.success) {
+            Get-ChildItem -LiteralPath (Join-Path $data 'logs') -Filter 'service-*.err.log' -ErrorAction SilentlyContinue | ForEach-Object { Get-Content -LiteralPath $_.FullName -Tail 100 }
+            throw 'The Windows EXE did not start a healthy processor.'
+          }
           if ($health.accelerator.mode -ne 'cpu' -or $health.accelerator.whisperDevice -ne 'cpu' -or $health.accelerator.separationDevice -ne 'cpu') {
             throw "Expected CPU fallback on the GPU-free runner; health reported $($health.accelerator | ConvertTo-Json -Compress)."
           }
