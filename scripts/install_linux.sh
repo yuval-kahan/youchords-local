@@ -115,7 +115,7 @@ if [[ "${backend_requirements}" == "requirements.linux.cuda.txt" ]]; then
   "${app_root}/runtime/uv" pip install --python "${venv_python}" 'nvidia-cudnn-cu12==8.9.7.29'
 fi
 "${app_root}/runtime/uv" pip install --python "${venv_python}" \
-  -r "${app_root}/processor/requirements.linux.txt"
+  --no-build-isolation -r "${app_root}/processor/requirements.linux.txt"
 
 service_file="${HOME}/.config/systemd/user/youchords-local.service"
 cat >"${service_file}" <<UNIT

@@ -68,7 +68,7 @@ if ($cudaAvailable) {
   & $uv pip install --python $venvPython 'nvidia-cudnn-cu12==8.9.7.29'
   if ($LASTEXITCODE -ne 0) { throw 'Could not install the CUDA runtime libraries.' }
 }
-& $uv pip install --python $venvPython --find-links $wheels -r $requirements
+& $uv pip install --python $venvPython --no-build-isolation --find-links $wheels -r $requirements
 if ($LASTEXITCODE -ne 0) { throw 'Could not install the YouChords packages for the selected CPU/GPU runtime.' }
 
 Write-Host 'Windows local processor packages are ready.' -ForegroundColor Green
