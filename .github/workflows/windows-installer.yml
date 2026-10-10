@@ -2,6 +2,11 @@ name: Build and test YouChords local installers
 
 on:
   workflow_dispatch:
+    inputs:
+      windows_only:
+        description: Run only the Windows installer job for troubleshooting.
+        type: boolean
+        default: false
   push:
     tags:
       - 'processor-v*'
@@ -166,6 +171,7 @@ jobs:
 
 
   build-linux:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.windows_only }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out YouChords
@@ -258,6 +264,7 @@ jobs:
           retention-days: 30
 
   test-docker-cpu:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.windows_only }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out YouChords
