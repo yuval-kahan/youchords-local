@@ -1,0 +1,634 @@
+/**
+ * YouChords - Carousel CSS
+ * קובץ סגנונות לקרוסל האקורדים
+ */
+
+/* קונטיינר הקרוסל - מגביל את התצוגה */
+.chords-carousel {
+  overflow-x: hidden; /* עדיין חותך ימין/שמאל כדי שלא יגלוש */
+  overflow-y: visible; /* אבל נותן לחלק העליון-תחתון לבלוט */
+  position: relative;
+  width: 100%;
+  padding: 8px 0; /* ריפוד קטן כדי שלא ייצמד לגמרי לשחור למעלה */
+  /* שיפור ביצועים עם האצת GPU */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* הגדלת ה-padding העליון כאשר Rectangle Progress Bar פעיל */
+.rectangle-progress-enabled .chords-carousel {
+  padding-top: 36px;
+}
+
+/* כשיש מלבנים מורמים - הוסף padding גדול יותר לקרוסלה עצמה */
+.rectangle-progress-enabled.has-elevated-rects .chords-carousel {
+  padding-top: 65px; /* מספיק מקום למלבן המורם */
+}
+
+/* קומה שלישית – 95px (36 + 2×30 – מתיישר עם ה-backdrop) */
+.rectangle-progress-enabled.three-levels .chords-carousel,
+.rectangle-progress-enabled.has-elevated-rects.three-levels .chords-carousel {
+  padding-top: 95px;
+}
+
+/*  BACKDROP שמקיף את כל הקלפים - עדין ושקוף מאוד  */
+.chords-backdrop {
+  display: inline-block; /* שיהיה רק סביב הקרוסל */
+  padding: 8px 10px; /* מרווח פנימי – ככה השוליים הכחולים ייראו */
+  border-radius: 12px; /* פינות מעוגלות */
+  /* background מוגדר ב-JavaScript (chordsDisplay.js) */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03); /* צל עדין יותר */
+  backdrop-filter: blur(2px); /* אפקט זכוכית עדין יותר */
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* רצועת האקורדים - נעה שמאלה/ימינה */
+.carousel-track {
+  display: flex;
+  will-change: transform;
+  backface-visibility: hidden;
+  align-items: flex-end; /* חדש – שומר על קו אחיד בתחתית */
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform 0.2s linear; /* שינוי לאנימציה קצרה וליניארית */
+}
+
+/* חריץ אקורד בודד - רוחב קבוע */
+.chord-slot {
+  flex: 0 0 90px;
+  width: 90px;
+  height: 145px; /* הגדלת הגובה מ-140px ל-145px */
+  margin: 0 1px; /* היה 5px, אחר כך 2px - עכשיו 1px לצמצום מקסימלי */
+  background-color: white; /* היה rgba(255, 255, 255, 0.9) - עכשיו לבן מלא */
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-right: 2.5px; /* היה padding: 0; - כעת נוסף ריווח ימני */
+  opacity: 1; /* היה 0.8 - עכשיו אטימות מלאה */
+  /* שיפור ביצועים עם האצת GPU */
+  transform: translateZ(0); /* הסרת ה-scale כדי לבטל את הכיווץ */
+  -webkit-transform: translateZ(0);
+}
+
+/* הוספת אנימציה לכניסה והיעלמות של אקורדים */
+@keyframes slideInRight {
+  from,
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutLeft {
+  from,
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* אנימציה לאקורד חדש שנכנס */
+.chord-slot.new-chord,
+.chord-slot.exiting-chord {
+  animation: none;
+}
+
+/* מצבי אקורד - פס כחול אחיד 4px */
+.chord-slot.active-chord {
+  background-color: white; /* רקע לבן */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transform: translateZ(0); /* הסרת ההגדלה - אקורד בגודל רגיל */
+  -webkit-transform: translateZ(0);
+  transform-origin: center center; /* חזרה לברירת-מחדל: הגדילה מתפזרת חצי-חצי למעלה/למטה */
+  opacity: 1;
+  z-index: 2;
+  border: 4px solid #2196f3; /* מסגרת כחולה עבה יותר - 4px */
+  border-radius: 8px; /* עיגול פינות */
+  position: relative; /* הוספה לאפשר מיקום אבסולוטי של הפס האדום */
+}
+
+/* שכבה שמבטלת את ה-transition */
+.chord-slot.no-progress-transition::before,
+.chord-slot.no-progress-transition .rectangle-progress-fill {
+  transition: none !important;
+}
+
+/* פס התקדמות אדום מעל האקורד הפעיל */
+.chord-slot.active-chord::before {
+  content: "";
+  position: absolute;
+  top: -7px; /* מיקום מעל המסגרת הכחולה */
+  left: 0;
+  right: 0;
+  height: 3px;
+  width: 100%; /* רוחב מלא */
+  background: #e53935;
+  border-radius: 2px;
+  transform-origin: left; /* קנה-מידה מהצד השמאלי */
+  transform: scaleX(var(--progress-scale, 0)); /* ברירת-מחדל – ריק */
+  transition: transform 0.12s linear;
+  will-change: transform;
+  z-index: 3;
+}
+
+/*──────────── פס אדום – מיקום תחתון ────────────*/
+body.yc-pb-bottom .chord-slot.active-chord::before {
+  top: auto;
+  bottom: -7px;
+}
+
+/*─────────────────────────────────────────────
+  מלבן rectangle – מיקום תחתון (yc-rect-bottom)
+─────────────────────────────────────────────*/
+body.yc-rect-bottom .rectangle-progress {
+  top: auto !important;
+  bottom: -38px !important;
+}
+
+/* השורות הבאות כבר נמצאות במקום הנכון ב-rectangle-progress-fill */
+/* transition: transform 0.12s linear; */
+/* will-change: transform; */
+/* z-index: 3; */
+
+/* הסרת הצבע הלבן מהטקסט כי הרקע כבר לבן */
+.chord-slot.active-chord .chord-name-inner {
+  color: #333; /* צבע כהה על רקע לבן */
+}
+
+.chord-slot.active-chord .chord-time-inner {
+  color: #666; /* צבע כהה על רקע לבן */
+}
+
+/* ביטול המילוי הכחול בכרטיס הפנימי */
+.chord-container.active-chord {
+  background-color: inherit; /* יירש לבן מה-slot */
+  box-shadow: none; /* ביטול הצל הכחול */
+}
+
+.chord-slot.future-chord {
+  /* הסרנו את הרקע הצהוב */
+  background-color: white; /* לבן מלא במקום inherit/צהוב/אפור */
+  transform: translateZ(0); /* הסרת ה-scale כדי לבטל את הכיווץ */
+  -webkit-transform: translateZ(0);
+  opacity: 1; /* היה 0.7 - עכשיו אטימות מלאה */
+}
+
+/* תוכן האקורד - האלמנטים החדשים בתוך הדיאגרמה */
+.chord-name-inner {
+  font-weight: bold;
+  font-size: 15px;
+  text-align: center;
+  color: #333;
+  transition: color 0.3s ease;
+  position: absolute;
+  top: -8px; /* הזזה למעלה יותר */
+  left: 0;
+  right: 0;
+}
+
+.chord-time-inner {
+  font-size: 13px;
+  color: #666;
+  transition: color 0.3s ease;
+  position: absolute;
+  top: 10px; /* הזזה למעלה יותר */
+  width: 100%; /* להבטיח שהאלמנט תופס את כל הרוחב */
+  text-align: center; /* יישור למרכז */
+  margin-bottom: 0; /* ביטול מרווח תחתון */
+}
+
+/* הסגנונות הישנים נשארים לתאימות לאחור */
+.chord-name {
+  display: none;
+}
+
+.chord-time {
+  display: none;
+}
+
+.chord-diagram {
+  width: 80px;
+  height: 140px; /* הגדלת הגובה משמעותית להשתמש בכל השטח הזמין */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  position: relative;
+  padding-top: 0; /* ביטול המרווח הפנימי לגמרי */
+  background-color: white;
+  border-radius: 3px;
+  margin-top: 2px; /* מרווח מינימלי מהטקסט */
+}
+
+.chord-container {
+  flex: 1 0 auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* אין "כרטיס בתוך כרטיס" */
+  box-shadow: none; /* מבטל צל כפול ישן       */
+  border-radius: inherit; /* שומר על פינות העגולות  */
+  margin: 0;
+  padding: 0;
+}
+
+/* הגדלת ה-SVG של הדיאגרמה */
+.chord-diagram svg {
+  width: 100%; /* מילוי כל הרוחב האפשרי */
+  height: 85%; /* מילוי רוב הגובה, משאיר מקום למעלה לטקסט */
+  transform: scale(1.2); /* הגדלה נוספת של 20% */
+  transform-origin: center 60%; /* נקודת ההגדלה ממוקמת קצת יותר למטה */
+  margin-top: 25px; /* הגדלת המרווח למעלה כדי להשאיר יותר מקום לטקסט */
+}
+
+/* אקורד לא נמצא */
+.chord-not-found {
+  font-size: 24px;
+  color: #ccc;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* התאמה למסכים שונים */
+@media (max-width: 768px) {
+  .chord-slot {
+    flex: 0 0 70px;
+    width: 70px;
+    height: 125px; /* הגדלת הגובה מ-120px ל-125px */
+    margin: 0 2px; /* היה 3px - עכשיו 2px לצמצום הרווחים */
+  }
+
+  .chord-diagram {
+    width: 65px;
+    height: 120px; /* הגדלת הגובה משמעותית */
+    padding-top: 0; /* ביטול המרווח הפנימי */
+    margin-top: 2px; /* מרווח מינימלי מהטקסט */
+  }
+}
+
+@media (min-width: 1200px) {
+  .chord-slot {
+    flex: 0 0 100px;
+    width: 100px;
+    height: 175px; /* הגדלת הגובה מ-170px ל-175px */
+    margin: 0 4px; /* היה 6px - עכשיו 4px לצמצום הרווחים */
+  }
+
+  .chord-diagram {
+    width: 90px;
+    height: 160px; /* הגדלת הגובה משמעותית */
+    padding-top: 0; /* ביטול המרווח הפנימי */
+    margin-top: 2px; /* מרווח מינימלי מהטקסט */
+  }
+}
+
+/* מצב טעינה - כשהדיאגרמה עדיין לא מוכנה */
+.loading-chord {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+  background: white;
+}
+
+.loading-chord::before {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4285f4;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   Subtitles in Chords styles
+   ============================================ */
+
+/* הגדלת padding-bottom כאשר כתוביות מופעלות */
+.chords-backdrop.subtitles-in-chords-enabled {
+  padding-bottom: 25px; /* הגדלה מ-15px ל-25px - יותר מקום מלמטה */
+}
+
+/* קונטיינר הכתוביות */
+.chords-subtitles-container {
+  margin-top: 0; /* Removed margin completely */
+  padding: 0 6px 8px 6px; /* הוספת padding תחתון של 8px */
+  text-align: center;
+  color: #333;
+  font-size: 15px;
+  line-height: 1.1; /* Reduced from 1.2 - minimal line height */
+  width: 100%;
+  box-sizing: border-box;
+  /* שינוי מ-flexbox ל-inline-block כדי למנוע בעיות רוחב */
+  display: block;
+  text-align: center;
+}
+
+/* כל כתובית */
+.chord-subtitle {
+  margin: 0 3px; /* margin במקום gap */
+  padding: 1px 4px; /* צמצום הרוחב */
+  display: inline-block; /* רוחב דינמי לפי תוכן */
+  width: fit-content; /* גבול צמוד */
+  max-width: none; /* ביטול הגבלה ישנה */
+  min-width: 0; /* מניעת בעיות flexbox */
+  transition: opacity 0.3s ease;
+  white-space: normal; /* שינוי מ-nowrap - אפשר שבירת שורות */
+  overflow: visible; /* שינוי מ-hidden כדי לאפשר לטקסט להיראות */
+  text-overflow: clip; /* ללא ellipsis */
+  line-height: 1.15; /* קצת יותר צמוד */
+  /* הסרת flex-shrink כי כבר לא משתמשים ב-flexbox */
+  vertical-align: top; /* יישור עליון */
+  /* הסרת הגבלות max-height ו-overflow שגרמו לחיתוך */
+  word-break: normal; /* מילים לא נחתכות באמצע */
+  overflow-wrap: break-word; /* שבירת מילים ארוכות מאוד במידת הצורך */
+}
+
+/* כל הכתוביות - וודא התכווצות מלאה */
+.chord-subtitle-prev,
+.chord-subtitle-next,
+.chord-subtitle-current {
+  min-width: 0; /* מניעת בעיות רוחב */
+  max-width: none !important; /* ביטול כל הגבלת רוחב */
+  width: -moz-fit-content; /* Firefox */
+  width: -webkit-fit-content; /* Safari/Chrome */
+  width: fit-content;
+  /* הסרת flex-shrink כי כבר לא משתמשים ב-flexbox */
+  vertical-align: top; /* יישור עליון */
+}
+
+/* כתוביות קודמת והבאה */
+.chord-subtitle-prev,
+.chord-subtitle-next {
+  opacity: 1;
+  font-size: 15px;
+  color: #1f1f1f; /* Gray text color */
+  border: 1px solid rgba(0, 0, 0, 0.15); /* Light transparent border */
+  border-radius: 8px; /* Reduced from 12px for tighter look */
+  padding: 2px 6px; /* צר יותר ↔ */
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.9
+  ); /* Light semi-transparent background */
+  display: inline-block !important; /* Force inline-block */
+  width: fit-content;
+
+  /* הסרת text-wrap: balance כדי למנוע רווחים */
+  text-align: left; /* יישור שמאלי כברירת מחדל */
+  line-height: 1.22; /* זהה ל-base כדי לא לפתוח רווח מיותר */
+  /* הסרת max-width כדי לאפשר התכווצות מלאה */
+  white-space: normal; /* שינוי מ-nowrap - אפשר שבירת שורות */
+  word-break: normal; /* ללא שבירת מילים באמצע */
+  overflow-wrap: break-word; /* שבירת מילים ארוכות מאוד במידת הצורך */
+  hyphens: none; /* ללא מקפים */
+  max-width: 200px; /* הגבלת רוחב כדי לעודד חלוקה ל-2 שורות */
+}
+
+/* הכתובית הנוכחית */
+.chord-subtitle-current {
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #333;
+  border-radius: 8px; /* Reduced from 12px for tighter look */
+  padding: 2px 6px; /* צר יותר ↔ */
+  display: inline-block !important; /* Force inline-block */
+  width: fit-content;
+
+  /* הסרת text-wrap: balance כדי למנוע רווחים */
+  text-align: left; /* יישור שמאלי כברירת מחדל */
+  line-height: 1.22; /* זהה ל-base כדי לא לפתוח רווח מיותר */
+  /* הסרת max-width כדי לאפשר התכווצות מלאה */
+  white-space: normal; /* שינוי מ-nowrap - אפשר שבירת שורות */
+  word-break: normal; /* ללא שבירת מילים באמצע */
+  overflow-wrap: break-word; /* שבירת מילים ארוכות מאוד במידת הצורך */
+  hyphens: none; /* ללא מקפים */
+  max-width: 200px; /* הגבלת רוחב כדי לעודד חלוקה ל-2 שורות */
+}
+
+/* הקטנת padding של span במילים מודגשות */
+.chord-subtitle-current span,
+.chord-subtitle-prev span,
+.chord-subtitle-next span {
+  padding: 0 0px !important; /* 0-Padding – מונע הצטברות רוחב */
+}
+
+/* Fallback עם display: table להבטחת התכווצות */
+@supports not (width: fit-content) {
+  .chord-subtitle-prev,
+  .chord-subtitle-next,
+  .chord-subtitle-current {
+    display: table !important;
+  }
+}
+
+/* עבור טקסטים קצרים - מניעת שבירה מיותרת */
+.chord-subtitle-prev.text-short,
+.chord-subtitle-next.text-short,
+.chord-subtitle-current.text-short {
+  white-space: nowrap; /* לא לשבור טקסטים קצרים */
+  /* הסרת max-height שגרמה לחיתוך */
+  /* max-width כבר מבוטל */
+}
+
+/* Dynamic padding classes based on text length */
+.chord-subtitle.padding-minimal {
+  padding: 0px 3px !important; /* Very tight for short text */
+}
+
+.chord-subtitle.padding-small {
+  padding: 1px 4px !important; /* Small padding for medium-short text */
+}
+
+.chord-subtitle.padding-medium {
+  padding: 2px 6px !important; /* Medium padding for medium text */
+}
+
+.chord-subtitle.padding-large {
+  padding: 2px 6px !important; /* צר יותר גם לטקסט ארוך */
+}
+
+/* תמיכה ב-RTL */
+.chords-subtitles-container[dir="rtl"] {
+  flex-direction: row-reverse;
+}
+
+/* כיווניות טקסט אוטומטית */
+.chord-subtitle[dir="rtl"],
+.chord-subtitle-prev[dir="rtl"],
+.chord-subtitle-next[dir="rtl"],
+.chord-subtitle-current[dir="rtl"] {
+  direction: rtl;
+  text-align: right !important; /* יישור ימני לשפות RTL */
+}
+
+.chord-subtitle[dir="ltr"],
+.chord-subtitle-prev[dir="ltr"],
+.chord-subtitle-next[dir="ltr"],
+.chord-subtitle-current[dir="ltr"] {
+  direction: ltr;
+  text-align: left !important; /* יישור שמאלי לשפות LTR */
+}
+
+/* התאמה למסכים קטנים */
+@media (max-width: 768px) {
+  .chords-subtitles-container {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .chord-subtitle-current {
+    font-size: 15px;
+    padding: 4px 12px;
+  }
+
+  .chord-subtitle-prev,
+  .chord-subtitle-next {
+    font-size: 11px;
+  }
+}
+
+/* Dynamic padding adjustment for multi-line subtitles */
+.chords-backdrop.subtitles-in-chords-enabled.multi-line-subtitles {
+  padding-bottom: 10px; /* מספיק לשוליים אבל לא ענק */
+}
+
+/* עבור טקסטים ארוכים - חלוקה מאוזנת אידיאלית */
+.chord-subtitle-prev.text-long,
+.chord-subtitle-next.text-long,
+.chord-subtitle-current.text-long {
+  /* הסרת max-width כדי לאפשר התכווצות מלאה */
+  line-height: 1.22; /* אותו line-height כמו שאר הכתוביות */
+  white-space: normal !important; /* שומר על רווחים ומאפשר שבירת שורות */
+  word-break: normal; /* ללא שבירת מילים אגרסיבית */
+  overflow-wrap: break-word; /* שבירת מילים ארוכות מאוד במידת הצורך */
+  hyphens: none; /* ללא מקפים אוטומטיים */
+  /* פתרון לבעיית רוחב בטקסט רב-שורתי */
+  display: inline-block !important; /* חזרה ל-inline-block */
+  width: auto !important;
+  max-width: 200px !important; /* ערך מתאים לעידוד חלוקה ל-2 שורות */
+  word-spacing: 0; /* אחידות מוחלטת ברוחב הרווחים */
+  box-sizing: border-box; /* כולל padding ו-border ברוחב */
+  /* הסרת כל ההגבלות שגרמו לחיתוך */
+}
+
+/* עבור טקסטים רב-שורתיים - יישור מתאים והתאמה ל-RTL */
+.chord-subtitle-prev:has(br),
+.chord-subtitle-next:has(br),
+.chord-subtitle-current:has(br),
+.chord-subtitle-prev.text-long,
+.chord-subtitle-next.text-long,
+.chord-subtitle-current.text-long {
+  text-align: left; /* יישור שמאלי למניעת רווחים */
+  direction: ltr; /* ברירת מחדל */
+  word-spacing: 0; /* אחידות מוחלטת ברוחב הרווחים */
+}
+
+/* תמיכה ב-RTL עם יישור מתאים */
+.chord-subtitle[dir="rtl"]:has(br),
+.chord-subtitle[dir="rtl"].text-long {
+  text-align: right;
+  direction: rtl;
+}
+
+/* כשה-JavaScript מגדיר רוחב ספציפי */
+.chord-subtitle-prev[style*="width"],
+.chord-subtitle-next[style*="width"],
+.chord-subtitle-current[style*="width"] {
+  white-space: normal !important; /* מאפשר שבירת שורות */
+  word-break: break-word !important; /* שבירת מילים ארוכות במידת הצורך */
+  overflow-wrap: anywhere !important; /* שבירה בכל מקום */
+}
+
+/* כתוביות שטופלו על ידי JavaScript */
+.chord-subtitle.multiline-adjusted {
+  text-align: left !important; /* יישור שמאלי למניעת רווחים */
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
+
+/* תיקון ליישור RTL */
+.chord-subtitle[dir="rtl"].multiline-adjusted {
+  text-align: right !important;
+}
+
+/* ההדגשה הוורודה - אופטימיזציה לזיכרון */
+.yt-subtitle-word.past-word,
+.chord-subtitle .yt-subtitle-word.past-word {
+  background-color: rgba(255, 182, 193, 0.4) !important;
+  font-weight: bold; /* ⬅️ אותו bold כמו למילה הצהובה */
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* הרווח בין מילים שכבר עברו – אותו ורוד, 0-padding */
+.yt-subtitle-space.past-space,
+.chord-subtitle .yt-subtitle-space.past-space {
+  background-color: rgba(255, 182, 193, 0.4) !important;
+  padding: 0 !important;
+}
+
+/* המילה הנוכחית - צהובה */
+.yt-subtitle-word.highlighted,
+.chord-subtitle .yt-subtitle-word.highlighted {
+  background-color: rgba(255, 255, 0, 0.7) !important;
+  font-weight: bold; /* ⬅️ bold נשאר */
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* אופטימיזציה לביצועים - מניעת reflow */
+.yt-subtitle-word,
+.yt-subtitle-space {
+  display: inline;
+  will-change: background-color;
+  transform: translateZ(0); /* hardware acceleration */
+}
+
+/* ============================================
+   Rectangle Progress Bar - Chord Name Overflow
+   ============================================ */
+
+/* שם האקורד במלבן Progress Bar */
+.rectangle-chord-name {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+  font-size: 14px;
+  color: white;
+  white-space: nowrap;
+  width: max-content;
+  overflow: visible;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* וידוא שהמלבן עצמו מאפשר overflow */
+.rectangle-progress {
+  overflow: visible !important;
+  position: relative;
+}

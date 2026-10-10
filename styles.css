@@ -1,0 +1,3087 @@
+/* ─────────────  HIDE YOUTUBE TITLE  ─────────────
+   אנו מוסיפים מחלקת body ("yc-hide-title") ומסתירים
+   את ‎.ytp-title רק כשהיא מופיעה בראש במסך‑מלא.          */
+body.yc-hide-title .ytp-chrome-top .ytp-title {
+  display: none !important;
+}
+
+/* Keep YouChords UI isolated from YouTube page language/direction.
+   Text content that intentionally supports RTL has more specific rules below. */
+:where(
+  [data-yc-owned="true"],
+  [data-yc-owned="true"] *,
+  [data-yc-menu],
+  [data-yc-menu] *,
+  .yc-toolbar-cluster,
+  .yc-toolbar-cluster *,
+  .yc,
+  .custom-button-container,
+  .custom-button-container *,
+  .yt-subtitle-overlay,
+  .yt-subtitle-overlay *,
+  .yt-subtitle-settings-menu,
+  .yt-subtitle-settings-menu *,
+  .settings-menu,
+  .settings-menu *,
+  .yc-settings-menu,
+  .yc-settings-menu *,
+  #yc-buttons-tour-overlay,
+  #yc-buttons-tour-card,
+  #yc-buttons-tour-mode-switch,
+  .yt-lyrics-chords-panel,
+  .yt-lyrics-chords-panel *,
+  .yc-chord-carousel,
+  .yc-chord-carousel *,
+  .yc-preview-panel,
+  .yc-preview-panel *,
+  .yc-preview-size-control,
+  .yc-preview-size-control *,
+  .lyrics-chords-header,
+  .lyrics-chords-controls,
+  .header-controls-row,
+  .chord-explorer-overlay,
+  .chord-explorer-overlay *,
+  .tuner-overlay,
+  .tuner-overlay *
+) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Carousel subtitle text is content, not chrome UI. Let it keep its own
+   language direction even when YouTube itself is RTL. */
+.yc-carousel-subtitles-area,
+.yc-carousel-subtitles-area .yc-subtitles-track {
+  unicode-bidi: normal;
+}
+
+.yc-carousel-subtitles-area .yc-subtitle-ellipse {
+  unicode-bidi: plaintext;
+}
+
+.yc-carousel-subtitles-area .yc-subtitle-word {
+  direction: inherit;
+  unicode-bidi: normal;
+}
+
+.yc-carousel-subtitles-area {
+  direction: ltr;
+}
+
+.yc-carousel-subtitles-area.is-rtl,
+.yc-carousel-subtitles-area.is-rtl .yc-subtitles-track {
+  direction: rtl;
+}
+
+.yc-carousel-subtitles-area:not(.is-rtl),
+.yc-carousel-subtitles-area:not(.is-rtl) .yc-subtitles-track {
+  direction: ltr;
+}
+
+.yc-carousel-subtitles-area .yc-subtitle-ellipse {
+  direction: inherit;
+}
+
+.yt-subtitle-overlay {
+  position: absolute;
+  bottom: 10%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.yt-subtitle-container {
+  display: inline-block;
+  padding: 4px 8px;
+  margin: 0 auto;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  color: white;
+  font-size: var(--subtitle-size, 24px);
+  line-height: 1.4;
+  max-width: 80%;
+}
+
+/* RTL Support */
+.yt-subtitle-container.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.word-container {
+  display: inline-block;
+}
+
+.yt-subtitle-container.rtl .word-container {
+  direction: rtl;
+}
+
+.yt-subtitle-word {
+  display: inline-block;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  border-radius: 2px;
+}
+
+.yt-subtitle-line {
+  white-space: normal; /* אפשר ירידת שורה טבעית */
+  overflow-wrap: break-word; /* ואם צריך – שבור במרווח/מקף */
+}
+
+.yt-subtitle-space {
+  display: inline-block;
+  white-space: pre;
+}
+
+.yt-subtitle-punctuation {
+  display: inline-block;
+  opacity: 0.8;
+  padding: 0 1px;
+  transition: color 0.2s ease;
+}
+
+.yt-subtitle-word.highlighted {
+  background-color: rgba(255, 255, 0, 0.5);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.yt-subtitle-word.highlighted + .yt-subtitle-punctuation {
+  opacity: 0.8;
+  background-color: transparent;
+  transition: color 0.2s ease;
+}
+
+/* Word countdown number display */
+.word-countdown-number {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* Blink Animations */
+@keyframes pureFadeBlink {
+  0% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes highlightFadeBlink {
+  0% {
+    background-color: var(--highlight-color);
+  }
+  40% {
+    background-color: transparent;
+  }
+  60% {
+    background-color: transparent;
+  }
+  100% {
+    background-color: var(--highlight-color);
+  }
+}
+
+/* Speed variations for both word and highlight */
+.blink-speed-slow.word-blink,
+.blink-speed-slow.highlight-blink {
+  animation-duration: 2.5s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+.blink-speed-medium.word-blink,
+.blink-speed-medium.highlight-blink {
+  animation-duration: 1.5s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+.blink-speed-fast.word-blink,
+.blink-speed-fast.highlight-blink {
+  animation-duration: 0.8s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+/* Apply animations */
+.word-blink {
+  animation-name: pureFadeBlink;
+}
+
+.highlight-blink {
+  animation-name: highlightFadeBlink;
+}
+
+/* Base button styles - aligned with YouTube's new UI */
+.ytp-button.yt-subtitle-toggle,
+.ytp-button.yt-subtitle-settings,
+.ytp-button.karaoke-button,
+.ytp-button.yt-volume-control,
+.yt-volume-container,
+.ytp-button.ytp-subtitle-button,
+.ytp-button.ytp-vocal-button,
+.ytp-button.settings-button,
+.ytp-button.dub-button,
+.ytp-button.chords-button,
+.ytp-button.instruments-button,
+.ytp-button.ytp-chords-button,
+.ytp-button.ytp-lyrics-chords-button,
+.ytp-button.ytp-tuner-button,
+.ytp-button.ytp-chord-explorer-button {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer;
+  opacity: 0.9;
+  background: transparent;
+  border: none;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  position: relative !important;
+  transform: none !important;
+}
+
+/* YouChords button cluster. This keeps our controls internally LTR/ordered
+   without changing YouTube's own RTL/LTR page or player layout. */
+.yc-toolbar-cluster {
+  height: 48px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: row !important;
+  direction: ltr !important;
+  unicode-bidi: isolate !important;
+  vertical-align: top !important;
+  position: relative !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+.yc-toolbar-cluster > .custom-button-container {
+  flex: 0 0 48px !important;
+}
+
+/* Custom button container - aligned with YouTube's new UI */
+.custom-button-container {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: top !important;
+  display: inline-block !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  top: -4px !important;
+}
+
+/* Keep YouTube's native volume control clickable above YouChords buttons. */
+.html5-video-player .ytp-chrome-bottom .ytp-volume-area,
+.html5-video-player .ytp-chrome-bottom .ytp-mute-button,
+.html5-video-player .ytp-chrome-bottom .ytp-volume-panel {
+  position: relative !important;
+  z-index: 60 !important;
+  pointer-events: auto !important;
+}
+
+.html5-video-player .ytp-chrome-bottom .ytp-volume-slider {
+  pointer-events: auto !important;
+}
+
+.html5-video-player .ytp-chrome-bottom .custom-button-container,
+.html5-video-player .ytp-chrome-bottom .custom-button-container > .ytp-button {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* All custom buttons - centered and same size as YouTube */
+.custom-button-container .ytp-button {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  vertical-align: top !important;
+}
+
+/* SVG icon sizes - match YouTube */
+.ytp-button.yt-subtitle-toggle svg,
+.ytp-button.yt-subtitle-settings svg,
+.ytp-button.karaoke-button svg,
+.ytp-button.yt-volume-control svg,
+.ytp-button.ytp-subtitle-button svg,
+.ytp-button.ytp-vocal-button svg,
+.ytp-button.settings-button svg,
+.ytp-button.dub-button svg,
+.ytp-button.chords-button svg,
+.ytp-button.instruments-button svg,
+.ytp-button.ytp-chords-button svg,
+.ytp-button.ytp-lyrics-chords-button svg,
+.ytp-button.ytp-tuner-button svg,
+.ytp-button.ytp-chord-explorer-button svg {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  margin: 0 !important;
+  display: block !important;
+}
+
+/* Base button styles - transparent background, no border */
+.custom-button-container .ytp-button {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  opacity: 0.9 !important;
+  transition: opacity 0.2s !important;
+}
+
+.custom-button-container .ytp-button:hover {
+  opacity: 1 !important;
+}
+
+.custom-button-container[data-yc-tooltip]::after {
+  content: attr(data-yc-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: 56px;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(28, 28, 28, 0.96);
+  color: #fff;
+  border-radius: 4px;
+  padding: 8px 9px;
+  font: 500 12px/1.2 Roboto, Arial, sans-serif;
+  white-space: nowrap;
+  letter-spacing: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 2147483647;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transition: opacity 80ms linear, transform 80ms ease, visibility 0s linear 80ms;
+}
+
+.custom-button-container[data-yc-tooltip]:hover::after,
+.custom-button-container[data-yc-tooltip]:focus-within::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: 0s;
+}
+
+/* Hover states */
+.ytp-button.yt-subtitle-toggle:hover,
+.ytp-button.yt-subtitle-settings:hover,
+.ytp-button.karaoke-button:hover,
+.ytp-button.yt-volume-control:hover,
+.ytp-button.ytp-vocal-button:hover,
+.ytp-button.dub-button:hover,
+.ytp-button.chords-button:hover,
+.ytp-button.instruments-button:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Subtitle and Settings buttons - no hover background */
+.ytp-button.ytp-subtitle-button:hover,
+.ytp-button.settings-button:hover {
+  opacity: 1;
+  background-color: transparent !important;
+}
+
+/* Lyrics & Chords Button Active State */
+.ytp-button.lyrics-chords-active svg {
+  fill: red !important;
+  stroke: red !important;
+}
+
+/* Active states for buttons */
+.ytp-button.ytp-subtitle-button .ytp-svg-fill,
+.ytp-button.ytp-custom-subtitle-button .ytp-svg-fill,
+.ytp-button.yt-subtitle-toggle path,
+.ytp-button.karaoke-button svg path,
+.ytp-button.ytp-vocal-button svg path,
+.ytp-button.settings-button svg path,
+.ytp-button.dub-button svg path,
+.ytp-button.chords-button svg path,
+.ytp-button.instruments-button svg path {
+  fill: #fff !important;
+  transition: fill 0.2s ease;
+}
+/* צביעת כפתור האקורדים באדום כשהוא פעיל */
+.chords-active .ytp-svg-fill {
+  fill: #ff1a1a !important;
+}
+/* ברירת מחדל - צבע לבן לכפתור האקורדים */
+.ytp-chords-button:not(.chords-active) .ytp-svg-fill {
+  fill: #ffffff !important;
+}
+.ytp-button.ytp-subtitle-button.subtitle-button-active .ytp-svg-fill,
+.ytp-button.yt-subtitle-toggle.active path,
+.ytp-button.karaoke-button.active svg path,
+.ytp-button.ytp-vocal-button.active svg path,
+.ytp-button.settings-button.active svg path,
+.ytp-button.dub-button.active svg path,
+.ytp-button.instruments-button.active svg path {
+  fill: #ff0000 !important;
+}
+
+/* Subtitle button circle stroke turns red when active */
+.ytp-button.ytp-subtitle-button.subtitle-button-active .ytp-svg-stroke {
+  stroke: #ff0000 !important;
+}
+
+/* CCT is a separate local translated track, so its active state is distinct. */
+.ytp-button.ytp-custom-subtitle-button.custom-subtitle-button-active .ytp-svg-fill {
+  fill: #20d6b5 !important;
+}
+
+.ytp-button.ytp-custom-subtitle-button.custom-subtitle-button-active .ytp-svg-stroke {
+  stroke: #20d6b5 !important;
+}
+
+/* Settings Menu Styles */
+.yt-subtitle-settings-menu,
+.settings-menu {
+  position: absolute;
+  bottom: 65px;
+  right: 10px;
+  background: rgba(28, 28, 28, 0.9);
+  border-radius: 4px;
+  padding: 8px;
+  z-index: 1001;
+  color: white;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.yt-subtitle-settings-menu h3,
+.settings-menu h3 {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #fff;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.yt-subtitle-settings-menu button,
+.settings-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin: 4px 0;
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 2px;
+}
+
+.yt-subtitle-settings-menu button:hover,
+.settings-menu button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.yt-subtitle-settings-menu button.active,
+.settings-menu button.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Size button styles */
+.size-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.size-button {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 13px;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "YouTube Noto", Roboto, Arial, sans-serif;
+}
+
+.size-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.size-button.active {
+  color: #3ea6ff;
+}
+
+.size-button.active::after {
+  content: "✓";
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+/* Volume control styles */
+.custom-button-container,
+.yt-volume-container {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: top !important;
+  height: 48px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+.custom-volume-slider-container,
+.yt-volume-slider-container {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding: 8px;
+  background: rgba(28, 28, 28, 0.9);
+  border-radius: 4px;
+  z-index: 1001;
+  margin-bottom: 8px;
+}
+
+.custom-button-container:not(.active):hover .custom-volume-slider-container {
+  display: none;
+  opacity: 0;
+}
+
+.custom-button-container.active:hover .custom-volume-slider-container,
+.yt-volume-container:hover .yt-volume-slider-container {
+  display: block;
+  opacity: 1;
+}
+
+.custom-volume-slider,
+.yt-volume-slider {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  width: 12px;
+  height: 80px;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+.custom-volume-slider::-webkit-slider-runnable-track,
+.yt-volume-slider::-webkit-slider-runnable-track {
+  width: 12px;
+  background: transparent;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  background-size: 4px 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 2px;
+}
+
+.custom-volume-slider::-webkit-slider-thumb,
+.yt-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* General SVG shadow */
+.ytp-svg-shadow {
+  stroke: #000;
+  stroke-opacity: 0.15;
+  stroke-width: 2px;
+  fill: none;
+}
+
+/* New CSS classes for regular subtitles (bottom of screen) - separate from chord subtitles */
+.regular-subtitle-word {
+  display: inline-block;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  border-radius: 2px;
+}
+
+.regular-subtitle-space {
+  display: inline-block;
+  white-space: pre;
+}
+
+.regular-subtitle-punctuation {
+  display: inline-block;
+  opacity: 0.8;
+  padding: 0 1px;
+  transition: color 0.2s ease;
+}
+
+.regular-subtitle-word.highlighted {
+  background-color: rgba(255, 255, 0, 0.5);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.regular-subtitle-word.past-word {
+  background-color: rgba(255, 182, 193, 0.4);
+  font-weight: bold;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.regular-subtitle-space.past-space {
+  background-color: rgba(255, 182, 193, 0.4);
+  padding: 0;
+}
+
+.regular-subtitle-word.highlighted + .regular-subtitle-punctuation {
+  opacity: 0.8;
+  background-color: transparent;
+  transition: color 0.2s ease;
+}
+
+/* Performance optimization for regular subtitles */
+.regular-subtitle-word,
+.regular-subtitle-space {
+  display: inline;
+  will-change: background-color;
+  transform: translateZ(0); /* hardware acceleration */
+}
+
+/* Timeline Always Visible Feature */
+/* כאשר התכונה פעילה, הטיימליין נשאר גלוי תמיד */
+body.yc-timeline-always-visible .ytp-chrome-bottom {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* הסתרת כפתורים לא רצויים כשהעכבר לא על הנגן */
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-button:not(.ytp-play-button):not(.ytp-next-button):not(
+    .ytp-prev-button
+  ):not(.ytp-mute-button):not(.ytp-volume-panel),
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-fullscreen-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-settings-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-subtitles-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-size-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-miniplayer-button {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease;
+}
+
+/* הסתרת הכפתורים שלנו כשהעכבר לא על הנגן */
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .custom-button-container,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .yt-volume-container,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.karaoke-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.chords-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.ytp-subtitle-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.ytp-vocal-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.settings-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.dub-button,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-button.instruments-button {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease;
+}
+
+/* שמירה על נראות של פאנל עוצמת השמע והזמן - עם pointer-events כדי שימשיכו להתעדכן */
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-volume-panel {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-time-display {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* וידוא שהפרוגרס בר נשאר גלוי ופעיל */
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .ytp-chrome-bottom
+  .ytp-progress-bar-container {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* הוספת will-change למניעת repaint מיותר */
+body.yc-timeline-always-visible .ytp-chrome-bottom .ytp-progress-bar-container,
+body.yc-timeline-always-visible .ytp-chrome-bottom .ytp-time-display {
+  will-change: contents;
+}
+
+/* וידוא שכפתור play/pause תמיד נשאר פעיל */
+body.yc-timeline-always-visible .ytp-chrome-bottom .ytp-play-button {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* וידוא שכפתור next video תמיד נשאר פעיל */
+body.yc-timeline-always-visible .ytp-chrome-bottom .ytp-next-button {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* כשהעכבר על הנגן - הכל חוזר להיות גלוי */
+body.yc-timeline-always-visible
+  .html5-video-player:hover
+  .ytp-chrome-bottom
+  .ytp-chrome-controls
+  .ytp-button,
+body.yc-timeline-always-visible
+  .html5-video-player:hover
+  .ytp-chrome-bottom
+  .custom-button-container,
+body.yc-timeline-always-visible
+  .html5-video-player:hover
+  .ytp-chrome-bottom
+  .yt-volume-container {
+  opacity: 0.9 !important;
+}
+
+/* ─────────────  LYRICS & CHORDS BUTTON STYLES  ─────────────
+   עיצוב לכפתור המשולב של אקורדים וכתוביות */
+.ytp-lyrics-chords-button {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  opacity: 0.8 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.ytp-lyrics-chords-button:hover {
+  opacity: 1 !important;
+}
+
+/* כשהכפתור פעיל - צבע אדום */
+.ytp-lyrics-chords-button.lyrics-chords-active .ytp-svg-fill {
+  fill: #ff1a1a !important;
+}
+
+/* ========================================
+   SEPIA THEME - עיצוב דף ספר ישן
+======================================== */
+
+/* רקע וצבעי בסיס לפאנל */
+.yt-lyrics-chords-panel.sepia-theme {
+  background-color: #f9f9f9 !important; /* רקע SEPIA */
+  color: #2c2c2c !important; /* טקסט שחור */
+  border: 1px solid #d4c4a8 !important; /* גבול חום בהיר */
+}
+
+/* כותרת הפאנל */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-chords-header {
+  background-color: #f9f9f9 !important; /* רקע חום כהה יותר */
+  color: #2c2c2c !important;
+  border-bottom: 2px solid #d4c4a8 !important;
+}
+
+/* כותרת ראשית */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-chords-title {
+  color: #2c2c2c !important;
+}
+
+/* כל הכותרות h3 */
+.yt-lyrics-chords-panel.sepia-theme h3 {
+  color: #2c2c2c !important;
+}
+
+/* תוכן הפאנל */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-chords-content {
+  background-color: #fafafa !important;
+  color: #2c2c2c !important;
+}
+
+/* אלמנטי בקרה */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-chords-controls {
+  background-color: #f9f9f9 !important;
+  border-top: 1px solid #d4c4a8 !important;
+  border-bottom: 2px solid #d4c4a8 !important;
+}
+
+/* תוויות בשורות בקרה */
+.yt-lyrics-chords-panel.sepia-theme .scroll-control-label {
+  color: #2c2c2c !important;
+}
+
+/* כפתורים */
+.yt-lyrics-chords-panel.sepia-theme .font-size-btn {
+  background-color: #d4c4a8 !important;
+  color: #2c2c2c !important;
+  border: 1px solid #c4b49a !important;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .font-size-btn:hover {
+  background-color: #c4b49a !important;
+}
+
+/* תצוגת מספרים */
+.yt-lyrics-chords-panel.sepia-theme .font-size-display {
+  color: #2c2c2c !important;
+  background-color: #e8e2d5 !important;
+  border: 1px solid #d4c4a8 !important;
+}
+
+/* כפתור סגירה */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-chords-close {
+  color: #2c2c2c !important;
+  background-color: #f9f9f9 !important;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .lyrics-chords-close:hover {
+  background-color: #c4b49a !important;
+}
+
+/* מילים בטקסט */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-word {
+  color: #2c2c2c !important;
+}
+
+/* מילה פעילה (מודגשת) */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-word.active {
+  background-color: var(--yc-highlight-color-sepia, #ffff00) !important;
+  color: #1a1a1a !important;
+}
+
+/* ✅ הדגשה לדו-לשוני - sepia theme */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-word.active > div {
+  background-color: inherit;
+  color: inherit;
+}
+
+/* 🎯 Sepia theme - container active */
+.yt-lyrics-chords-panel.sepia-theme .word-chord-container.word-active {
+  background-color: var(--yc-highlight-color-sepia, #ffff00);
+}
+.yt-lyrics-chords-panel.sepia-theme .word-chord-container.word-active .chord-above,
+.yt-lyrics-chords-panel.sepia-theme .word-chord-container.word-active .word-below {
+  background-color: var(--yc-highlight-color-sepia, #ffff00);
+}
+.yt-lyrics-chords-panel.sepia-theme .word-chord-container.word-active::after {
+  background-color: var(--yc-highlight-color-sepia, #ffff00);
+}
+
+/* 🎯 Past Words - מילים שכבר עברו (SEPIA) */
+.yt-lyrics-chords-panel.sepia-theme .lyrics-word.past-word {
+  color: var(--yc-past-word-color, #e91e63) !important;
+}
+
+/* אקורדים - צבע אפור דהוי */
+.yt-lyrics-chords-panel.sepia-theme .chord {
+  color: #888888 !important;
+  background-color: #e8e2d5 !important;
+  border: 1px solid #d4c4a8 !important;
+}
+
+/* אקורד פעיל */
+.yt-lyrics-chords-panel.sepia-theme .chord.active {
+  background-color: #c4b49a !important;
+  color: #666666 !important;
+}
+
+/* כפתורי SPEED של Auto scroll - בדיוק כמו כפתורי Text size ו-Panel width */
+.yt-lyrics-chords-panel.sepia-theme .speed-btn {
+  background-color: #d4c4a8 !important;
+  color: #2c2c2c !important;
+  border: 1px solid #c4b49a !important;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .speed-btn:hover {
+  background-color: #c4b49a !important;
+}
+
+/* Chords Preview Icon - Sepia Theme */
+.yt-lyrics-chords-panel.sepia-theme .theme-cycle-icon {
+  color: #8b7355;
+}
+
+/* תצוגת מהירות */
+.yt-lyrics-chords-panel.sepia-theme .speed-display {
+  background-color: #e8e2d5 !important;
+  color: #2c2c2c !important;
+  border: 1px solid #d4c4a8 !important;
+}
+
+/* Toggle של SEPIA - כשהוא דלוק (ימין) ב-SEPIA theme */
+/* כל ה-toggles כשהם כבוים ב-SEPIA theme - צבע שחור */
+.yt-lyrics-chords-panel.sepia-theme .scroll-toggle:not(.active) {
+  background: #535252 !important;
+}
+
+/* כשהכפתור פעיל - מסגרת אדומה */
+.ytp-lyrics-chords-button.lyrics-chords-active rect {
+  stroke: #ff1a1a !important;
+}
+
+/* כשהכפתור לא פעיל - צבע לבן */
+.ytp-lyrics-chords-button:not(.lyrics-chords-active) .ytp-svg-fill {
+  fill: #ffffff !important;
+}
+
+/* כשהכפתור לא פעיל - מסגרת לבנה */
+.ytp-lyrics-chords-button:not(.lyrics-chords-active) rect {
+  stroke: #ffffff !important;
+}
+
+/* ─────────────  LYRICS & CHORDS PANEL STYLES  ─────────────
+   עיצוב לפאנל המשולב של מילים ואקורדים */
+.yt-lyrics-chords-panel {
+  position: absolute;
+  top: 0px; /* הרחבת הפאנל למעלה */
+  width: 450px;
+  height: calc(100vh - 20px); /* גובה מלא לאחר ההרחבה */
+  background: #06111a; /* כחול-שחור כהה - תואם ל-header */
+  color: #ffffff;
+  font-family: "Roboto", Arial, sans-serif;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* RTL - פאנל בצד ימין (מיקום יקבע דינמית) */
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl {
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+}
+
+/* LTR - פאנל בצד שמאל (מיקום יקבע דינמית) */
+.yt-lyrics-chords-panel.yt-lyrics-chords-ltr {
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+}
+
+.lyrics-chords-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* הקטנה מ-8px ל-4px */
+  padding: 30px 15px 8px 15px; /* הוספת padding-top למקום לכפתור X */
+  background: rgba(62, 166, 255, 0.1);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  margin-top: 0px; /* הסרת margin כדי שהרקע יתחיל מלמעלה */
+}
+
+/* כותרת Lyrics & Chords עם פונט יפה וקריא */
+.lyrics-chords-title {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3ea6ff;
+  text-align: center;
+  margin: 0;
+  position: absolute;
+  top: 3px;
+  left: 160px;
+  transform: translateX(-50%);
+  z-index: 10;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.3px;
+}
+
+/* קו תחתון דק מתחת לכותרת */
+.lyrics-chords-title::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(62, 166, 255, 0.6);
+}
+
+.header-controls-row {
+  display: flex;
+  justify-content: flex-start; /* הזזה שמאלה */
+  align-items: center;
+  gap: 12px; /* רווח בין הכפתורים */
+}
+
+.lyrics-chords-header h3 {
+  margin: 0;
+  font-size: 12px; /* הקטנה מ-14px ל-12px */
+  font-weight: 500;
+  color: #3ea6ff;
+}
+
+.lyrics-chords-close {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 20px; /* הקטנה מ-24px ל-20px */
+  cursor: pointer;
+  pointer-events: auto;
+  padding: 0;
+  width: 24px; /* הקטנה מ-30px ל-24px */
+  height: 24px; /* הקטנה מ-30px ל-24px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+  position: absolute;
+  top: -1px; /* צמוד לפינה בדיוק כמו X של Preview */
+  right: -1px; /* צמוד לפינה בדיוק כמו X של Preview */
+  z-index: 10;
+}
+
+.lyrics-chords-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* כפתורי שינוי גודל פונט */
+.font-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* הקטנה מ-6px ל-4px */
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 5px; /* הקטנה מ-4px 7px ל-3px 5px */
+  border-radius: 8px; /* הקטנה מ-11px ל-8px */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-left: -4px; /* הזזה שמאלה ליישור עם הטוגלים */
+}
+
+/* כפתורי TEXT SIZE - הזזה ימינה מעל כפתורי PANEL WIDTH */
+.font-size-controls:has(#font-decrease) {
+  margin-left: -4px; /* הזזה ימינה יותר לכפתורי TEXT SIZE */
+}
+
+/* Toggle של MINI בשורת Panel width */
+#chords-toggle {
+  margin-left: -40px; /* יישור התחלה עם Theme toggle (SEPIA) */
+}
+
+.font-size-btn {
+  background: rgba(62, 166, 255, 0.2);
+  border: 1px solid rgba(62, 166, 255, 0.3);
+  color: #ffffff;
+  font-size: 11px; /* הקטנה מ-13px ל-11px */
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 4px; /* הקטנה מ-3px 5px ל-2px 4px */
+  width: 18px; /* הקטנה מ-22px ל-18px */
+  height: 18px; /* הקטנה מ-22px ל-18px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px; /* הקטנה מ-4px ל-3px */
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.font-size-btn:hover:not(:disabled) {
+  background: rgba(62, 166, 255, 0.4);
+  border-color: rgba(62, 166, 255, 0.6);
+  transform: scale(1.05);
+}
+
+.font-size-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.font-size-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.font-size-display {
+  color: #ffffff;
+  font-size: 10px; /* הקטנה מ-11px ל-10px */
+  font-weight: 500;
+  min-width: 16px; /* הקטנה מ-19px ל-16px */
+  text-align: center;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1px 4px; /* הקטנה מ-2px 5px ל-1px 4px */
+  border-radius: 3px; /* הקטנה מ-4px ל-3px */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lyrics-chords-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0px 20px 70vh 20px; /* 70vh bottom padding allows last word to scroll to center */
+  /* Centered lyrics layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lyrics-chords-loading,
+.lyrics-chords-error {
+  text-align: center;
+  padding: 40px 20px;
+  color: #cccccc;
+  font-size: 14px;
+}
+
+.lyrics-chords-error {
+  color: #ff6b6b;
+}
+
+.lyrics-chords-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lyrics-chords-line {
+  margin-bottom: 2px;
+  padding: 0;
+}
+
+.lyrics-chords-chord-line {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 1px;
+  min-height: 18px;
+  font-family: var(--yc-lyrics-font, 'Roboto', sans-serif);
+}
+
+.lyrics-chord {
+  background: rgba(62, 166, 255, 0.3);
+  color: #3ea6ff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 4px;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.lyrics-chord.active {
+  background: #3ea6ff;
+  color: #ffffff;
+  border-color: #3ea6ff;
+  box-shadow: 0 2px 8px rgba(62, 166, 255, 0.4);
+  transform: scale(1.05);
+}
+
+.lyrics-chord-spacer {
+  display: inline-block;
+  height: 20px;
+  margin-right: 4px;
+}
+
+.lyrics-chords-word-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  font-family: var(--yc-lyrics-font, 'Roboto', sans-serif);
+  flex-wrap: wrap;
+  /* Centered lyrics layout */
+  justify-content: center;
+}
+
+.word-chord-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 3px;
+  position: relative; /* 🎯 לאפשר pseudo-element */
+}
+
+/* 🎯 כשהמילה בתוך ה-container היא active */
+.word-chord-container.word-active {
+  background-color: var(--yc-highlight-color-black, #2a2a2a);
+}
+
+/* 🎯 גם chord-above ו-word-below מקבלים רקע */
+.word-chord-container.word-active .chord-above,
+.word-chord-container.word-active .word-below {
+  background-color: var(--yc-highlight-color-black, #2a2a2a);
+}
+
+/* 🎯 pseudo-element שממלא את הרווח (margin) לימין */
+.word-chord-container.word-active::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--yc-highlight-color-black, #2a2a2a);
+}
+
+/* 🎯 אם ה-container הבא לא active - לא צריך את ה-pseudo של הנוכחי */
+.word-chord-container.word-active:has(+ .word-chord-container:not(.word-active))::after,
+.word-chord-container.word-active:last-child::after {
+  display: none;
+}
+
+/* 🔧 Chord Gap - אקורד עם רווח ריק מתחתיו (ללא מילה) */
+.word-chord-container.chord-gap {
+  opacity: 0.9;
+}
+
+.word-chord-container.chord-gap .chord-gap-spacer {
+  color: transparent;
+  user-select: none;
+}
+
+.chord-above {
+  display: flex;
+  justify-content: center;
+  min-height: 18px;
+  margin-bottom: 1px;
+}
+
+.word-below {
+  display: flex;
+  justify-content: center;
+}
+
+.lyrics-chord {
+  color: #3ea6ff;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 4px;
+  padding: 1px 3px;
+  background: rgba(62, 166, 255, 0.1);
+  border-radius: 3px;
+  border: 1px solid rgba(62, 166, 255, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.lyrics-chord:hover {
+  background-color: rgba(62, 166, 255, 0.2);
+  border-radius: 4px;
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(62, 166, 255, 0.3);
+}
+
+/* הסתרת אקורדים כשה-toggle כבוי */
+.yt-lyrics-chords-panel.chords-hidden .lyrics-chord {
+  display: none !important;
+}
+
+/* הקטנת מרווח בין שורות כשאקורדים מוסתרים */
+.yt-lyrics-chords-panel.chords-hidden .chord-above {
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 0 !important;
+}
+
+.yt-lyrics-chords-panel.chords-hidden .lyrics-chords-word-line {
+  margin-bottom: 6px !important;
+}
+
+.yt-lyrics-chords-panel.chords-hidden .word-chord-container {
+  margin-bottom: 0 !important;
+}
+
+/* הסתרת chord-gap containers כשאקורדים כבויים */
+.yt-lyrics-chords-panel.chords-hidden .word-chord-container.chord-gap {
+  display: none !important;
+}
+
+.lyrics-word {
+  color: #e0e0e0;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  margin-right: 4px;
+  white-space: normal;
+  cursor: pointer;
+  display: inline-block;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.lyrics-word.active {
+  background: var(--yc-highlight-color-black, #2a2a2a);
+  color: #ffffff;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+/* ✅ הדגשה לדו-לשוני - ה-div הפנימיים יורשים את הצבע */
+.lyrics-word.active > div {
+  background: inherit;
+  color: inherit;
+}
+
+/* 🎯 Past Words - מילים שכבר עברו */
+.lyrics-word.past-word {
+  color: var(--yc-past-word-color, #e91e63) !important;
+}
+
+/* Instrumental Sections Labels */
+.instrumental-label {
+  display: inline-block;
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+  margin-bottom: 6px;
+  margin-top: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.instrumental-label:hover {
+  color: #3ea6ff;
+}
+
+.instrumental-label.active {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  width: auto;
+  box-shadow: 0 1px 4px rgba(255, 215, 0, 0.3);
+}
+
+/* SEPIA theme */
+.yt-lyrics-chords-panel.sepia-theme .instrumental-label {
+  color: #666;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .instrumental-label.active {
+  background-color: #d4c4a8 !important;
+  color: #1a1a1a !important;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  width: auto;
+}
+
+/* ========================================
+   LIGHT THEME - עיצוב בהיר ונקי
+======================================== */
+
+/* רקע וצבעי בסיס לפאנל */
+.yt-lyrics-chords-panel.light-theme {
+  background-color: #f9f9f9 !important;
+  color: #333333 !important;
+  border: 1px solid #000000 !important; /* שחור */
+}
+
+/* כותרת הפאנל */
+.yt-lyrics-chords-panel.light-theme .lyrics-chords-header {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border-bottom: 2px solid #000000 !important; /* שחור */
+}
+
+/* כותרת ראשית */
+.yt-lyrics-chords-panel.light-theme .lyrics-chords-title {
+  color: #2196f3 !important;
+}
+
+/* כל הכותרות h3 */
+.yt-lyrics-chords-panel.light-theme h3 {
+  color: #333333 !important;
+}
+
+/* תוכן הפאנל */
+.yt-lyrics-chords-panel.light-theme .lyrics-chords-content {
+  background-color: #f9f9f9 !important;
+  color: #333333 !important;
+}
+
+/* אלמנטי בקרה */
+.yt-lyrics-chords-panel.light-theme .lyrics-chords-controls {
+  background-color: #ffffff !important;
+  border-top: 1px solid #000000 !important; /* שחור */
+  border-bottom: 2px solid #000000 !important; /* שחור */
+}
+
+/* תוויות בשורות בקרה */
+.yt-lyrics-chords-panel.light-theme .scroll-control-label {
+  color: #333333 !important;
+}
+
+/* כפתורים */
+.yt-lyrics-chords-panel.light-theme .font-size-btn {
+  background-color: #e5e7eb !important;
+  color: #333333 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.yt-lyrics-chords-panel.light-theme .font-size-btn:hover {
+  background-color: #d1d5db !important;
+}
+
+/* תצוגת מספרים */
+.yt-lyrics-chords-panel.light-theme .font-size-display {
+  color: #333333 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* כפתור סגירה */
+.yt-lyrics-chords-panel.light-theme .lyrics-chords-close {
+  color: #333333 !important;
+  background-color: #ffffff !important;
+}
+
+.yt-lyrics-chords-panel.light-theme .lyrics-chords-close:hover {
+  background-color: #e5e7eb !important;
+}
+
+/* מילים בטקסט */
+.yt-lyrics-chords-panel.light-theme .lyrics-word {
+  color: #000000 !important; /* שחור */
+}
+
+/* מילה פעילה (מודגשת) - בלי font-weight כדי לא להזיז מילים */
+.yt-lyrics-chords-panel.light-theme .lyrics-word.active {
+  background-color: var(--yc-highlight-color-light, #d4e8fc) !important;
+  color: #000000 !important;
+}
+
+/* ✅ הדגשה לדו-לשוני - light theme */
+.yt-lyrics-chords-panel.light-theme .lyrics-word.active > div {
+  background-color: inherit;
+  color: inherit;
+}
+
+/* 🎯 Light theme - container active */
+.yt-lyrics-chords-panel.light-theme .word-chord-container.word-active {
+  background-color: var(--yc-highlight-color-light, #d4e8fc);
+}
+.yt-lyrics-chords-panel.light-theme .word-chord-container.word-active .chord-above,
+.yt-lyrics-chords-panel.light-theme .word-chord-container.word-active .word-below {
+  background-color: var(--yc-highlight-color-light, #d4e8fc);
+}
+.yt-lyrics-chords-panel.light-theme .word-chord-container.word-active::after {
+  background-color: var(--yc-highlight-color-light, #d4e8fc);
+}
+
+/* 🎯 Past Words - מילים שכבר עברו (LIGHT) */
+.yt-lyrics-chords-panel.light-theme .lyrics-word.past-word {
+  color: var(--yc-past-word-color, #e91e63) !important;
+}
+
+/* אקורדים - כחול עם רקע כחול בהיר */
+.yt-lyrics-chords-panel.light-theme .lyrics-chord,
+.yt-lyrics-chords-panel.light-theme .chord {
+  color: #2196f3 !important; /* כחול */
+  background-color: rgba(33, 150, 243, 0.1) !important; /* רקע כחול בהיר */
+  border: 1px solid rgba(33, 150, 243, 0.3) !important; /* border כחול */
+}
+
+/* אקורד פעיל - כחול מלא */
+.yt-lyrics-chords-panel.light-theme .lyrics-chord.active,
+.yt-lyrics-chords-panel.light-theme .chord.active {
+  background-color: #2196f3 !important; /* כחול מלא */
+  color: #ffffff !important; /* טקסט לבן */
+  border-color: #2196f3 !important;
+}
+
+/* כפתורי SPEED של Auto scroll */
+.yt-lyrics-chords-panel.light-theme .speed-btn {
+  background-color: #e5e7eb !important;
+  color: #333333 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.yt-lyrics-chords-panel.light-theme .speed-btn:hover {
+  background-color: #d1d5db !important;
+}
+
+/* Chords Preview Icon - Light Theme */
+.yt-lyrics-chords-panel.light-theme .theme-cycle-icon {
+  color: #4b5563;
+}
+
+/* תצוגת מהירות */
+.yt-lyrics-chords-panel.light-theme .speed-display {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Toggle של LIGHT - כשהוא דלוק */
+/* כל ה-toggles כשהם כבוים ב-LIGHT theme */
+.yt-lyrics-chords-panel.light-theme .scroll-toggle:not(.active) {
+  background: #9ca3af !important;
+}
+
+/* Instrumental Labels - Light Theme */
+.yt-lyrics-chords-panel.light-theme .instrumental-label {
+  color: #666666;
+}
+
+.yt-lyrics-chords-panel.light-theme .instrumental-label.active {
+  background-color: rgba(33, 150, 243, 0.15) !important;
+  color: #000000 !important;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  width: auto;
+}
+
+/* RTL Support for Lyrics & Chords Panel */
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .lyrics-chords-word-line {
+  direction: rtl;
+  text-align: right;
+}
+
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .word-chord-container {
+  margin-right: 0;
+  margin-left: 3px;
+}
+
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .word-chord-container.word-active::after {
+  right: auto;
+  left: -3px;
+}
+
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .lyrics-chord {
+  margin-right: 0;
+  margin-left: 4px;
+}
+
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .lyrics-word {
+  margin-right: 0;
+  margin-left: 4px;
+}
+
+/* RTL - יישור שורות עם labels לימין */
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .lyrics-chords-line {
+  direction: rtl;
+  text-align: right;
+}
+/* RTL Support for Instrumental Labels */
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .instrumental-label {
+  text-align: right;
+  direction: rtl;
+  display: inline-block; /* inline-block כדי שהספירה תהיה באותה שורה */
+}
+
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .instrumental-label.active {
+  display: inline-block;
+}
+
+/* ─────────────  SEPARATOR LINES FOR INTRO/INSTRUMENTAL/OUTRO  ───────────── */
+
+/* קו רגיל - ל-INSTRUMENTAL (קו בסיס) */
+.section-separator-line {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(62, 166, 255, 0.4) 20%,
+    rgba(62, 166, 255, 0.4) 80%,
+    transparent
+  );
+  margin: 15px 0 15px 0;
+}
+
+/* קו עם נקודות - לINTRO ו-OUTRO (אותו קו בדיוק + נקודות) */
+.section-separator-with-dots {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(62, 166, 255, 0.4) 20%,
+    rgba(62, 166, 255, 0.4) 80%,
+    transparent
+  );
+  margin: 15px 0 15px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-separator-dots {
+  position: absolute;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: #ffffff;
+  font-weight: bold;
+  background-color: #06111a; /* כחול-שחור כהה - תואם לפאנל */
+  padding: 0 8px;
+  z-index: 1;
+}
+
+/* SEPIA theme - נקודות שחורות על רקע sepia */
+.yt-lyrics-chords-panel.sepia-theme .section-separator-dots {
+  color: #2c2c2c;
+  background-color: #f9f9f9;
+}
+
+/* LIGHT theme - נקודות שחורות על רקע לבן (כמו SEPIA) */
+.yt-lyrics-chords-panel.light-theme .section-separator-dots {
+  color: #2c2c2c;
+  background-color: #f9f9f9;
+}
+
+/* RTL Support for Separator Lines - וידוא שהקווים בשורה נפרדת */
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .section-separator-line {
+  display: block;
+  width: 100%;
+  clear: both; /* מניעת חפיפה עם אלמנטים צפים */
+}
+
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .section-separator-with-dots {
+  display: flex; /* שומר על flex כדי שהנקודות יהיו באמצע */
+  width: 100%;
+  clear: both;
+  align-items: center;
+  justify-content: center;
+}
+
+/* סקרול בר מותאם אישית */
+.lyrics-chords-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lyrics-chords-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.lyrics-chords-content::-webkit-scrollbar-thumb {
+  background: rgba(62, 166, 255, 0.6);
+  border-radius: 3px;
+}
+
+.lyrics-chords-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(62, 166, 255, 0.8);
+}
+
+/* Chord Tooltips - CSS מוזרק דינמית מ-lyricsAndChordsButton.js */
+/* זה מונע כפילויות ופסים לא רצויים */
+
+/* הדגשת אקורדים עם hover */
+.lyrics-chord {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.lyrics-chord:hover {
+  background-color: rgba(62, 166, 255, 0.2) !important;
+  border-radius: 4px;
+  transform: scale(1.05);
+  box-shadow: 0 2px 6px rgba(62, 166, 255, 0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.lyrics-chord:hover::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid #3ea6ff;
+  opacity: 0.7;
+}
+
+/* אפקט לחיצה על מילה בפאנל - עדין מאוד */
+.lyrics-word {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.lyrics-word:hover {
+  background-color: rgba(62, 166, 255, 0.1) !important;
+  border-radius: 2px;
+}
+
+.lyrics-word.word-clicked {
+  background-color: rgba(62, 166, 255, 0.3) !important;
+  border-radius: 2px;
+  transition: background-color 0.1s ease;
+}
+
+/* התאמה למסכים קטנים */
+@media (max-width: 1400px) {
+  .yt-lyrics-chords-panel {
+    width: 380px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .yt-lyrics-chords-panel {
+    width: 320px;
+  }
+}
+
+/* התאמת כל הדף לפאנל */
+#page-manager,
+#content,
+#container,
+#main,
+ytd-app,
+body {
+  transition: margin 0.3s ease !important;
+}
+
+/* דף מוזח על ידי YouChords */
+.yc-page-adjusted {
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 900px) {
+  .yt-lyrics-chords-panel {
+    width: 250px;
+  }
+
+  .lyrics-chords-header {
+    padding: 10px 15px;
+  }
+
+  .lyrics-chords-content {
+    padding: 15px;
+  }
+}
+
+/* כיתה מלאכותית לכפיית hover state כשהעכבר לא על הנגן */
+body.yc-timeline-always-visible
+  .html5-video-player.yc-force-hover
+  .ytp-chrome-bottom {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* כפיית עדכון של timeline ושעון גם בmouse מלאכותי */
+body.yc-timeline-always-visible
+  .html5-video-player.yc-force-hover
+  .ytp-chrome-bottom
+  .ytp-progress-bar-container,
+body.yc-timeline-always-visible
+  .html5-video-player.yc-force-hover
+  .ytp-chrome-bottom
+  .ytp-time-display {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  display: block !important;
+}
+
+/* תיקון למצב פולסקרין */
+body.yc-timeline-always-visible .ytp-fullscreen .ytp-chrome-bottom {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* סגנונות לאלמנטי הבקרה החדשים של Lyrics & Chords */
+.lyrics-chords-controls {
+  padding: 8px 15px; /* הקטנה מ-12px 20px ל-8px 15px */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(62, 166, 255, 0.1);
+}
+
+.yt-lyrics-chords-panel.mini-mode .lyrics-chords-controls {
+  display: none;
+}
+
+.scroll-control-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px; /* הקטנה מ-10px ל-6px */
+  gap: 4px; /* הקטנה מ-6px ל-4px */
+  justify-content: flex-start; /* הזזה שמאלה */
+}
+
+.scroll-control-row:last-child {
+  margin-bottom: 0;
+}
+
+.scroll-control-icon {
+  font-size: 14px; /* הקטנה מ-16px ל-14px */
+  width: 16px; /* הקטנה מ-18px ל-16px */
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.scroll-control-label {
+  color: white;
+  font-size: 12px; /* הקטנה מ-13px ל-12px */
+  font-weight: 500;
+  width: 80px; /* הקטנה מ-85px ל-80px */
+  flex-shrink: 0;
+}
+
+/* Toggle Switch Styles */
+.scroll-toggle {
+  position: relative;
+  width: 36px; /* הקטנה מ-44px ל-36px */
+  height: 20px; /* הקטנה מ-24px ל-20px */
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px; /* הקטנה מ-12px ל-10px */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  flex-shrink: 0;
+  margin-left: -20px;
+}
+
+.scroll-toggle.active {
+  background: #4caf50;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px; /* הקטנה מ-20px ל-16px */
+  height: 16px; /* הקטנה מ-20px ל-16px */
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-toggle.active .toggle-slider {
+  transform: translateX(16px); /* התאמה לגודל החדש: 36px - 16px - 4px = 16px */
+}
+
+/* Preview toggle (moved to top row) */
+#chords-preview-toggle {
+  margin-left: -34px;
+}
+
+#chords-preview-toggle.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+#chords-preview-toggle.disabled .toggle-slider {
+  background: #9aa0a6;
+}
+
+/* Theme Toggle - 3 מצבים (BLACK/SEPIA/LIGHT) - אותו גובה כמו שאר ה-toggles */
+/* מיקומי כדור לפי data-state */
+
+/* Speed Controls */
+.yt-lyrics-chords-panel .speed-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* הקטנה מ-6px ל-4px */
+  margin-left: 4px; /* הקטנה מ-5px ל-4px */
+}
+
+.yt-lyrics-chords-panel .speed-display {
+  color: white;
+  font-size: 11px; /* הקטנה מ-13px ל-11px */
+  font-weight: 500;
+  min-width: 24px; /* הקטנה מ-28px ל-24px */
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 6px; /* הקטנה מ-4px 8px ל-3px 6px */
+  border-radius: 3px; /* הקטנה מ-4px ל-3px */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.yt-lyrics-chords-panel .speed-btn {
+  width: 20px; /* הקטנה מ-24px ל-20px */
+  height: 20px; /* הקטנה מ-24px ל-20px */
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 3px; /* הקטנה מ-4px ל-3px */
+  cursor: pointer;
+  font-size: 12px; /* הקטנה מ-14px ל-12px */
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
+  box-sizing: border-box;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.yt-lyrics-chords-panel .speed-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.yt-lyrics-chords-panel .speed-btn:active {
+  transform: scale(0.95);
+}
+
+.yt-lyrics-chords-panel .speed-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.yt-lyrics-chords-panel .speed-btn:disabled:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: none;
+}
+
+/* Theme cycle icon */
+.theme-cycle-icon {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: #d4c4a8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 18px;
+  padding: 0;
+}
+
+.theme-cycle-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.theme-cycle-icon:hover {
+  transform: scale(1.1);
+}
+
+.theme-cycle-icon.theme-black {
+  color: #8c93a3;
+}
+
+.theme-cycle-icon.theme-sepia {
+  color: #8b7355;
+}
+
+.theme-cycle-icon.theme-light {
+  color: #4b5563;
+}
+
+/* Sentence Mode Icon (¶) */
+.sentence-mode-icon {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  padding: 0;
+}
+
+.sentence-mode-icon:hover {
+  transform: scale(1.1);
+}
+
+.sentence-mode-icon.active {
+  color: #2196f3;
+}
+
+/* Sentence Mode Icon - Sepia Theme */
+.yt-lyrics-chords-panel.sepia-theme .sentence-mode-icon {
+  color: #8b7355;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .sentence-mode-icon.active {
+  color: #2196f3;
+}
+
+/* Sentence Mode Icon - Light Theme */
+.yt-lyrics-chords-panel.light-theme .sentence-mode-icon {
+  color: #666666;
+}
+
+.yt-lyrics-chords-panel.light-theme .sentence-mode-icon.active {
+  color: #2196f3;
+}
+
+/* ─────────────  LANGUAGE SELECTOR (Subtle Style)  ───────────── */
+.language-selector-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: -5px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.language-selector-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Language Dropdown - נפתח מתחת לכפתור, מיושר לשמאל כדי להישאר בתוך הפאנל */
+.language-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 20px;
+  margin-top: 5px;
+  background: rgba(40, 40, 40, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 0;
+  min-width: 180px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.language-dropdown.open {
+  display: block;
+}
+
+.language-dropdown-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+
+.language-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.language-dropdown-item.selected {
+  background: rgba(62, 166, 255, 0.3);
+  color: #3ea6ff;
+}
+
+/* SEPIA theme for language selector (Subtle Style) */
+.yt-lyrics-chords-panel.sepia-theme .language-selector-btn {
+  background: rgba(93, 78, 55, 0.15);
+  color: #2c2c2c;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .language-selector-btn:hover {
+  background: rgba(93, 78, 55, 0.25);
+}
+
+.yt-lyrics-chords-panel.sepia-theme .language-dropdown {
+  background: #fafafa;
+  border-color: #d4c4a8;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .language-dropdown-item {
+  color: #2c2c2c;
+}
+
+.yt-lyrics-chords-panel.sepia-theme .language-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.yt-lyrics-chords-panel.sepia-theme .language-dropdown-item.selected {
+  background: rgba(62, 166, 255, 0.2);
+  color: #1a73e8;
+}
+
+/* LIGHT theme for language selector (Subtle Style) */
+.yt-lyrics-chords-panel.light-theme .language-selector-btn {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1a1a1a;
+}
+
+.yt-lyrics-chords-panel.light-theme .language-selector-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.yt-lyrics-chords-panel.light-theme .language-dropdown {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.yt-lyrics-chords-panel.light-theme .language-dropdown-item {
+  color: #1a1a1a;
+}
+
+.yt-lyrics-chords-panel.light-theme .language-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.yt-lyrics-chords-panel.light-theme .language-dropdown-item.selected {
+  background: rgba(62, 166, 255, 0.2);
+  color: #1a73e8;
+}
+
+/* ─────────────  LYRICS & CHORDS PANEL HEADERS  ─────────────
+   יישור כותרות "Text size" ו-"Panel width" עם הכפתורים          */
+.lyrics-chords-header .header-controls-row h3 {
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-left: 8px; /* הזזה ימינה ליישור עם הכפתורים */
+  display: inline-block;
+  min-width: 70px; /* רוחב מינימלי ליישור אחיד */
+}
+
+/* ─────────────  SMOOTH PAGE TRANSITION FOR LYRICS & CHORDS PANEL  ─────────────
+   מוסיף transition חלק להזזת הדף כשפאנל Lyrics & Chords נפתח/נסגר          */
+body {
+  transition: margin-left 0.3s ease, margin-right 0.3s ease;
+}
+
+/* ─────────────  LYRICS & CHORDS WORD LINES FLEXIBLE LAYOUT  ─────────────
+   מאפשר לשורות להשתמש בכל הרוחב הזמין ולהתעטף בצורה גמישה          */
+.lyrics-chords-word-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 1px; /* רווח אנכי 4px, רווח אופקי 1px (רווח מינימלי) */
+  align-items: flex-end; /* יישור תחתון לאקורדים ומילים */
+  white-space: normal; /* אפשר עטיפה טבעית */
+  overflow-wrap: break-word; /* שבירת מילים ארוכות במידת הצורך */
+  width: 100%; /* ניצול מלא של רוחב הפאנל */
+  box-sizing: border-box;
+}
+
+/* וידוא שכל מילה+אקורד תופסת רק את המקום הנדרש */
+.word-chord-container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0; /* מונע כיווץ מיותר */
+  min-width: fit-content;
+}
+
+/* וידוא שהאקורדים והמילים לא גורמים לגלישה */
+.chord-above,
+.word-below {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* שיפור הצגת האקורדים */
+.lyrics-chord {
+  display: inline-block;
+  margin: 0 2px;
+  white-space: nowrap;
+}
+
+/* שיפור הצגת המילים */
+.lyrics-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* ─────────────  LYRICS & CHORDS BLOCK SEPARATION  ─────────────
+   הפרדה ויזואלית בין בלוקים של מילים לפי פערי זמן גדולים          */
+
+/* מעטפת בלוק */
+.lyrics-chords-block {
+  margin-bottom: 8px; /* רווח קטן בין בלוקים */
+  padding: 4px 0; /* רווח פנימי קל */
+}
+
+/* 🎵 צבעי בתים ופזמון - נשלטים דינמית מ-verseChorusColorsMenu.js */
+/* ברירת מחדל: ללא צבעים (הצבעים מוזרקים דינמית כש-toggle מופעל) */
+
+/* מרווח בין בלוקים מאוחדים (בתים/פזמונים) */
+.lyrics-chords-line {
+  margin-bottom: 16px; /* רווח בין בלוקים */
+  padding: 8px; /* רווח פנימי */
+  border-radius: 4px; /* פינות מעוגלות */
+}
+
+/* הפרדה בין בלוקים - מוסתר (יש לנו קווים אחרים) */
+.lyrics-chords-block-separator {
+  display: none;
+}
+
+/* קו הפרדה */
+.lyrics-chords-block-separator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.2) 80%,
+    transparent 100%
+  );
+  transform: translateY(-50%);
+}
+
+/* נקודות דקורטיביות במרכז */
+.lyrics-chords-block-separator::after {
+  content: "• • •";
+  background: rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  z-index: 1;
+  position: relative;
+}
+
+/* הפרדה מעודנת יותר בעת hover */
+.lyrics-chords-block-separator:hover::before {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(62, 166, 255, 0.3) 20%,
+    rgba(62, 166, 255, 0.5) 50%,
+    rgba(62, 166, 255, 0.3) 80%,
+    transparent 100%
+  );
+  transition: background 0.3s ease;
+}
+
+.lyrics-chords-block-separator:hover::after {
+  color: rgba(62, 166, 255, 0.8);
+  transition: color 0.3s ease;
+}
+
+/* ─────────────  CHORD ARROWS & COUNTER VISIBILITY  ─────────────
+   חצים ומונה אקורדים מתנהגים כמו העכבר - נעלמים כשהעכבר נעלם                        */
+
+/* ברירת מחדל - החצים, המונה והגלובוס מוסתרים כשהעכבר לא על הנגן */
+.html5-video-player:not(:hover) .chord-arrows-counter,
+.html5-video-player:not(:hover) .global-position-globe {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* כשהעכבר על הנגן - החצים, המונה והגלובוס מופיעים */
+.html5-video-player:hover .chord-arrows-counter,
+.html5-video-player:hover .global-position-globe {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 🎲 קוביה בקרוסלה - מוסתרת כשהעכבר לא על הנגן */
+.html5-video-player:not(:hover) .yc-dice-carousel {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 🎲 קוביה בקרוסלה - מופיעה כשהעכבר על הנגן */
+.html5-video-player:hover .yc-dice-carousel,
+.yc-root-wrapper:hover .yc-dice-carousel {
+  opacity: 1 !important;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 🎸 קאפו בקרוסלה - מוסתר כשהעכבר לא על הנגן */
+.html5-video-player:not(:hover) .yc-capo-carousel {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 🎸 קאפו בקרוסלה - מופיע כשהעכבר על הנגן */
+.html5-video-player:hover .yc-capo-carousel,
+.yc-root-wrapper:hover .yc-capo-carousel {
+  opacity: 1 !important;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 🌐 כפתור שפה בקרוסלה - מוסתר כשהעכבר לא על הנגן */
+.html5-video-player:not(:hover) .yc-language-container {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 🌐 כפתור שפה בקרוסלה - מופיע כשהעכבר על הנגן */
+.html5-video-player:hover .yc-language-container,
+.yc-root-wrapper:hover .yc-language-container {
+  opacity: 1 !important;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* ℹ️ כפתור מידע בקרוסלה - מוסתר כשהעכבר לא על הנגן */
+.html5-video-player:not(:hover) .yc-carousel-info-btn {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* ℹ️ כפתור מידע בקרוסלה - מופיע כשהעכבר על הנגן */
+.html5-video-player:hover .yc-carousel-info-btn {
+  opacity: 1 !important;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.html5-video-player.yc-carousel-controls-locked .yc-dice-carousel,
+.html5-video-player.yc-carousel-controls-locked .yc-capo-carousel,
+.html5-video-player.yc-carousel-controls-locked .yc-language-container,
+.html5-video-player.yc-carousel-controls-locked .yc-carousel-info-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* ℹ️ when Chord Info popup is open, keep button visible and highlighted */
+.yc-carousel-info-btn.yc-info-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background: rgba(33, 150, 243, 0.2) !important;
+  border-color: rgba(33, 150, 243, 0.62) !important;
+  color: #0b6cb8 !important;
+}
+
+.html5-video-player:not(:hover) .yc-carousel-info-btn.yc-info-open,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .yc-carousel-info-btn.yc-info-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* כש-Timeline Always Visible פעיל אבל העכבר לא על הנגן - החצים, המונה והגלובוס מוסתרים (כמו הכפתורים) */
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .chord-arrows-counter,
+body.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .global-position-globe {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* כש-Timeline Always Visible פעיל והעכבר על הנגן - החצים, המונה והגלובוס גלויים */
+body.yc-timeline-always-visible .html5-video-player:hover .chord-arrows-counter,
+body.yc-timeline-always-visible
+  .html5-video-player:hover
+  .global-position-globe {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* כש-Timeline Always Visible כבוי והעכבר נעלם (autohide) - החצים, המונה, הגלובוס, הקובייה, הקאפו וכפתור השפה נעלמים */
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .chord-arrows-counter,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .global-position-globe,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .yc-dice-carousel,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .yc-capo-carousel,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .yc-language-container,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide
+  .yc-carousel-info-btn {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide.yc-carousel-controls-locked
+  .yc-dice-carousel,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide.yc-carousel-controls-locked
+  .yc-capo-carousel,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide.yc-carousel-controls-locked
+  .yc-language-container,
+body:not(.yc-timeline-always-visible)
+  .html5-video-player.ytp-autohide.yc-carousel-controls-locked
+  .yc-carousel-info-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* וידוא שהחצים, המונה והגלובוס לא משפיעים על מיקום האקורד */
+.chord-arrows-counter,
+.global-position-globe {
+  pointer-events: none; /* מונע הפרעה לאינטראקציה עם האקורד */
+}
+
+/* הסתרת גלובוס כש-Globe Icon כבוי */
+body:not(.yc-globe-icon-enabled) .global-position-globe {
+  display: none !important;
+}
+
+/* ================================================================ */
+/* Chord Navigation Arrows - Interactive                           */
+/* ================================================================ */
+
+/* חצי ניווט בדיאגרמות אקורדים - פונקציונליים */
+.chord-arrow-left,
+.chord-arrow-right {
+  cursor: pointer;
+  fill: #666;
+  transition: fill 0.2s ease, transform 0.1s ease;
+  user-select: none;
+  pointer-events: auto; /* מאפשר לחיצה על החצים */
+}
+
+.chord-arrow-left:hover,
+.chord-arrow-right:hover {
+  fill: #3ea6ff; /* כחול בהיר - הדגשה בלבד */
+  /* הסרנו: transform: scale(1.2) - אין תנועה/הגדלה */
+}
+
+.chord-arrow-left:active,
+.chord-arrow-right:active {
+  fill: #0066cc; /* כחול כהה - בזמן לחיצה */
+  /* הסרנו: transform: scale(0.9) - אין תנועה/הקטנה */
+}
+
+/* מונה הפוזיציות - לא לחיץ */
+.chord-position-counter {
+  pointer-events: none;
+  user-select: none;
+  fill: #000000;
+}
+
+/* ============================================
+   Visual Indicators - Always Show Carousel Position Number
+   ============================================ */
+
+/* כשהתכונה מופעלת - מספר הפוזיציה תמיד גלוי */
+body.yc-carousel-position-always-visible
+  .html5-video-player
+  .chord-position-counter {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* החצים והגלובוס מוסתרים כשאין hover */
+body.yc-carousel-position-always-visible
+  .html5-video-player:not(:hover)
+  .chord-arrow-left,
+body.yc-carousel-position-always-visible
+  .html5-video-player:not(:hover)
+  .chord-arrow-right,
+body.yc-carousel-position-always-visible
+  .html5-video-player:not(:hover)
+  .global-position-globe {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* גם כש-Timeline Always Visible פעיל */
+body.yc-carousel-position-always-visible.yc-timeline-always-visible
+  .html5-video-player:not(:hover)
+  .chord-position-counter {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* גם כשהנגן ב-autohide */
+body.yc-carousel-position-always-visible
+  .html5-video-player.ytp-autohide
+  .chord-position-counter {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ============================================
+   Primary Chords Position - Clickable Position Numbers
+   ============================================ */
+
+/* כש-Primary Chord Position מופעל - מספר הפוזיציה הופך ללחיץ */
+body.yc-primary-chord-position-enabled .chord-position-counter {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  transition: fill 0.2s ease, opacity 0.2s ease;
+}
+
+/* Hover effect על מספר הפוזיציה */
+body.yc-primary-chord-position-enabled .chord-position-counter:hover {
+  fill: #2196f3 !important;
+  opacity: 1 !important;
+}
+
+/* גם ב-tooltip */
+body.yc-primary-chord-position-enabled
+  .lyrics-chords-tooltip
+  .chord-position-counter {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+body.yc-primary-chord-position-enabled
+  .lyrics-chords-tooltip
+  .chord-position-counter:hover {
+  fill: #2196f3 !important;
+  opacity: 1 !important;
+}
+
+/* 🌐 Global Position Globe Indicator */
+.global-position-globe {
+  cursor: default !important;
+  pointer-events: none !important;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.global-position-globe:hover {
+  opacity: 0.8;
+}
+
+/* ⬛ Black Arrows for Global Positions */
+.lyrics-chords-tooltip .chord-arrow-left.global-position-arrow,
+.lyrics-chords-tooltip .chord-arrow-right.global-position-arrow,
+.chord-arrow-left.global-position-arrow,
+.chord-arrow-right.global-position-arrow {
+  fill: #000000 !important;
+  transition: fill 0.2s ease;
+}
+
+/* Hover effect for black arrows */
+.chord-arrow-left.global-position-arrow:hover,
+.chord-arrow-right.global-position-arrow:hover,
+.lyrics-chords-tooltip .chord-arrow-left.global-position-arrow:hover,
+.lyrics-chords-tooltip .chord-arrow-right.global-position-arrow:hover {
+  fill: #3ea6ff !important;
+}
+
+/* כש-Black Arrows כבוי - החצים חוזרים לצבע רגיל */
+body:not(.yc-black-arrows-enabled) .global-position-arrow {
+  fill: #666 !important;
+}
+
+/* כש-Black Arrows כבוי - גם ב-tooltip (specificity גבוה יותר) */
+body:not(.yc-black-arrows-enabled) .lyrics-chords-tooltip .chord-arrow-left.global-position-arrow,
+body:not(.yc-black-arrows-enabled) .lyrics-chords-tooltip .chord-arrow-right.global-position-arrow {
+  fill: #666 !important;
+}
+
+/* ⬛ Black Position Number for Global Positions */
+body.yc-black-position-number-enabled .chord-position-counter.global-position-counter,
+body.yc-black-position-number-enabled
+  .lyrics-chords-tooltip
+  .chord-position-counter.global-position-counter {
+  fill: #000000 !important;
+  font-weight: 700 !important;
+  transition: fill 0.2s ease;
+}
+
+body.yc-black-position-number-enabled
+  .chord-position-counter.global-position-counter:hover,
+body.yc-black-position-number-enabled
+  .lyrics-chords-tooltip
+  .chord-position-counter.global-position-counter:hover {
+  fill: #3ea6ff !important;
+}
+
+
+/* Image Guide Lightbox */
+.yc-lightbox {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2147483648;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.yc-lightbox.active {
+  display: flex;
+  opacity: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.yc-lightbox-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  animation: lightboxZoom 0.2s ease;
+}
+
+@keyframes lightboxZoom {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.yc-lightbox-image {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.yc-lightbox-video {
+  width: min(90vw, 960px);
+  max-height: 90vh;
+  display: block;
+  border-radius: 8px;
+  background: #0f172a;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.yc-lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #333;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.yc-lightbox-close:hover {
+  background: #fff;
+  transform: scale(1.1);
+}
+
+/* Sign-in modal help links */
+.yc-image-guide-btn,
+.yc-video-tutorial-link {
+  text-decoration: none !important;
+  text-underline-offset: 2px;
+}
+
+.yc-image-guide-btn:focus,
+.yc-video-tutorial-link:focus {
+  outline: none;
+}
+
+.yc-image-guide-btn:focus-visible,
+.yc-video-tutorial-link:focus-visible {
+  outline: none;
+}
+
+.yc-image-guide-btn:hover,
+.yc-video-tutorial-link:hover {
+  color: #8b9ff5 !important;
+  text-decoration: underline !important;
+}
+/* ========================================================================== */
+/* Local AI audio separation controls                                         */
+/* ========================================================================== */
+.ytp-button.yc-audio-separation-button {
+  color: #fff !important;
+}
+
+.regular-subtitle-word.yc-word-translation {
+  display: inline-flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  vertical-align: middle;
+  line-height: 1.15;
+  overflow: visible;
+}
+.regular-subtitle-word.yc-word-translation::before {
+  content: attr(data-yc-word-translation);
+  display: block;
+  order: -1;
+  position: static;
+  transform: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.72em;
+  font-weight: inherit;
+  line-height: 1.1;
+  white-space: nowrap;
+  margin-bottom: 3px;
+  text-shadow: 0 1px 3px #000, 0 0 5px #000;
+  pointer-events: none;
+}
+
+.ytp-button.ytp-music-button,
+.ytp-button.ytp-instrument-picker-button {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.ytp-button.ytp-music-button svg,
+.ytp-button.ytp-instrument-picker-button svg {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  display: block !important;
+}
+
+.ytp-button.yc-audio-separation-button svg {
+  fill: currentColor !important;
+}
+
+.ytp-button.yc-audio-separation-button.audio-separation-active {
+  opacity: 1 !important;
+  background: rgba(255, 26, 26, 0.18) !important;
+}
+
+.ytp-button.yc-audio-separation-button.audio-separation-active .ytp-svg-fill {
+  fill: #ff1a1a !important;
+}
+
+.yc-audio-separation-container {
+  position: relative !important;
+  z-index: 80 !important;
+}
+
+.yc-audio-separation-button.audio-separation-loading {
+  animation: ycAudioSeparationPulse 1.2s ease-in-out infinite;
+}
+
+.yc-audio-separation-container[data-yc-tooltip]:hover::after {
+  content: attr(data-yc-tooltip);
+}
+
+.yc-audio-instrument-menu {
+  position: absolute;
+  right: -4px;
+  bottom: 52px;
+  width: 224px;
+  padding: 12px;
+  color: #fff;
+  background: rgba(28, 28, 28, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55);
+  font: 400 13px/1.35 Roboto, Arial, sans-serif;
+  text-align: left;
+  z-index: 2147483647;
+}
+
+.yc-audio-instrument-menu[hidden] {
+  display: none !important;
+}
+
+.yc-audio-menu-title {
+  margin-bottom: 2px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.yc-audio-menu-subtitle {
+  margin-bottom: 9px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+}
+
+.yc-audio-instrument-options {
+  display: grid;
+  gap: 4px;
+}
+
+.yc-audio-instrument-option {
+  display: grid;
+  grid-template-columns: 22px 1fr 18px;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 6px;
+  color: #fff;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.yc-audio-instrument-option:hover,
+.yc-audio-instrument-option.selected {
+  background: rgba(62, 166, 255, 0.17);
+  border-color: rgba(62, 166, 255, 0.55);
+}
+
+.yc-audio-instrument-icon {
+  font-size: 15px;
+}
+
+.yc-audio-instrument-check {
+  color: #3ea6ff;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.yc-audio-menu-model {
+  margin-top: 10px;
+  padding-top: 8px;
+  color: rgba(255, 255, 255, 0.48);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 10px;
+}
+
+.ytp-button.yc-audio-separation-button::after {
+  content: attr(data-yc-loading-label);
+  position: absolute;
+  right: 0;
+  bottom: 52px;
+  display: none;
+  width: max-content;
+  max-width: 230px;
+  padding: 6px 8px;
+  color: #fff;
+  background: rgba(28, 28, 28, 0.96);
+  border-radius: 4px;
+  font: 400 11px/1.2 Roboto, Arial, sans-serif;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2147483647;
+}
+
+.ytp-button.yc-audio-separation-button.audio-separation-loading::after {
+  display: block;
+}
+
+@keyframes ycAudioSeparationPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.yc-audio-separation-progress {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 78px !important;
+  transform: translateX(-50%) !important;
+  width: min(460px, calc(100% - 32px)) !important;
+  padding: 12px 14px !important;
+  color: #fff !important;
+  background: rgba(20, 20, 20, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.48) !important;
+  font: 400 13px/1.35 Roboto, Arial, sans-serif !important;
+  text-align: left !important;
+  z-index: 2147483647 !important;
+  pointer-events: none !important;
+}
+
+.yc-audio-separation-progress[hidden] {
+  display: none !important;
+}
+
+.yc-audio-separation-progress-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+}
+
+.yc-audio-separation-progress-percent {
+  color: #3ea6ff !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.yc-audio-separation-progress-track {
+  position: relative !important;
+  width: 100% !important;
+  height: 7px !important;
+  overflow: hidden !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 999px !important;
+}
+
+.yc-audio-separation-progress-bar {
+  position: relative !important;
+  width: 0;
+  height: 100% !important;
+  background: linear-gradient(90deg, #ff1a1a, #3ea6ff) !important;
+  border-radius: inherit !important;
+  transition: width 0.35s ease !important;
+}
+
+.yc-audio-separation-progress-bar.indeterminate::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -35%;
+  width: 35%;
+  background: rgba(255, 255, 255, 0.72);
+  animation: ycAudioSeparationProgressSweep 1.1s linear infinite;
+}
+
+.yc-audio-separation-progress-stage {
+  margin-top: 7px !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-size: 12px !important;
+}
+
+@keyframes ycAudioSeparationProgressSweep {
+  from { transform: translateX(0); }
+  to { transform: translateX(385%); }
+}

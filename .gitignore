@@ -1,0 +1,28 @@
+# Local extension build artifacts
+release/
+node_modules/
+*.log
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# User-specific configuration and credentials
+.env
+.env.*
+!.env.example
+**/cookies.txt
+**/serviceAccountKey.json
+**/*.pem
+.gcloud*/
+.docker-tmp/
+.kiro/settings/mcp.json
+
+# Local companion credentials, caches, and generated data
+chord-extractor-clean/.env
+chord-extractor-clean/.env.*
+!chord-extractor-clean/.env.example
+chord-extractor-clean/venv/
+chord-extractor-clean/output/
+chord-extractor-clean/temp/
+chord-extractor-clean/LOGS DOCKER/
+.youchords-local/

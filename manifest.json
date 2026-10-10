@@ -1,0 +1,88 @@
+{
+  "manifest_version": 3,
+  "name": "YouChords Local: Real-Time Chords for YouTube",
+  "version": "2.0.0",
+  "description": "Generate YouTube chords locally with Docker, madmom and Chordino. Optional Gemini subtitles use your own API key.",
+  "minimum_chrome_version": "127",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "http://127.0.0.1:8765/*",
+    "http://localhost:8765/*",
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "action": {
+    "default_popup": "popup-local.html",
+    "default_icon": {
+      "16": "images/icons/action-icon-16.png",
+      "32": "images/icons/action-icon-32.png",
+      "48": "images/icons/action-icon-48.png",
+      "128": "images/icons/action-icon-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": [
+        "utils/productionConsole.js",
+        "utils/yc-utils.js",
+        "utils/dynamicLoader.js",
+        "content.js"
+      ],
+      "css": ["styles.css"]
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": [
+      "firebase/auth.js",
+      "music/*",
+      "images/*",
+      "videos/*",
+      "images/icons/*",
+      "images/chords/*",
+      "images/subtitle/*",
+      "images/settings/*",
+      "utils/*.js",
+    "buttons/*.js",
+    "buttons/*.css",
+    "buttons/capoIcon.js",
+    "buttons/pitch-shifter.js",
+    "buttons/audioManager.js",
+    "buttons/settings/buttons_display/*.js",
+    "data/*.js",
+    "data/*.json.gz",
+    "data/instruments/*.json",
+    "data/*.srt",
+    "data/*.txt",
+    "data/chords.complete.js",
+    "css/*.css",
+    "fonts/google/*.woff2",
+    "buttons/settings/subtitles/*.js",
+    "buttons/settings/reset_to_default/*.js",
+    "buttons/settings/wipe_data/*.js",
+    "buttons/settings/Adjustments/*.js",
+    "buttons/settings/Subtitle_Mode/*.js",
+    "buttons/settings/Chords_Mode/*.js",
+    "buttons/settings/Chords/*.js",
+    "buttons/settings/lyricsAndChords/*.js",
+    "buttons/settings/Tuning/*.js",
+    "buttons/settings/Capo/*.js",
+    "buttons/settings/AI_Transcription/*.js"
+  ],
+  "matches": ["*://*.youtube.com/*"]
+}],
+
+  "icons": {
+    "16": "images/icons/icon-16.png",
+    "32": "images/icons/icon-32.png",
+    "48": "images/icons/icon-48.png",
+    "128": "images/icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}

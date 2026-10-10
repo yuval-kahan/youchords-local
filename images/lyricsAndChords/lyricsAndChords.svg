@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 24 24"
+     version="1.1">
+
+  <!-- צללית חיצונית של YouTube -->
+  <use class="ytp-svg-shadow"/>
+
+  <!-- מסגרת דקה סביב האייקון -->
+  <rect x="0.7" y="3.3" width="22.6" height="18.7"
+        rx="2" ry="2"
+        fill="none"
+        stroke="#ffffff"
+        stroke-width="0.7"/>
+
+  <!-- טקסט; צבע נשלט ב‑CSS דרך ‎.ytp-svg-fill -->
+  <g class="ytp-svg-fill"
+     font-family="Arial, sans-serif"
+     font-weight="bold"
+     text-anchor="middle">
+
+    <text x="12" y="9.3" font-size="6.7">subs</text>
+    <text x="12" y="14.7" font-size="4.7">&amp;</text>
+    <text x="12" y="20" font-size="6.7">chords</text>
+  </g>
+</svg>

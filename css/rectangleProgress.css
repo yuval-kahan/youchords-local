@@ -1,0 +1,126 @@
+/**
+ * YouChords - Rectangle Progress Bar CSS
+ * קובץ סגנונות למלבני התקדמות האקורדים
+ */
+
+/* מלבן התקדמות מעל כל אקורד */
+.chord-slot .rectangle-progress {
+  position: absolute;
+  top: -38px; /* מיקום גבוה יותר מאשר קודם */
+  left: 50%;
+  transform: translateX(-50%);
+  /*width: 80%;*/ /* רוחב של 80% מהקלף */
+  height: 20px; /* גובה של 4px כפי שהתבקש */
+  background: rgb(62,166,255); /* רקע לבן */
+  border-radius: 4px;
+  /*border: 2px solid #03a9f4; /* גבול אדום מכל הכיווונים! */
+  overflow: hidden; /* להסתיר את המילוי שחורג */
+  z-index: 4; /* מספר גבוה יותר מהפס האדום (z-index: 3) */
+}
+
+/* רקע ורוד רק עבור האקורד הפעיל */
+.chord-slot.active-chord .rectangle-progress {
+  background: rgb(255, 64, 129); /* רקע ורוד רק לאקורד הפעיל */
+}
+
+/* מילוי המלבן */
+.chord-slot .rectangle-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%; /* רוחב מלא */
+  background: rgba(255, 255, 255, 0.3); /* צבע ורוד-אדום אחיד */
+  transform-origin: left; /* קנה-מידה מהצד השמאלי */
+  transform: scaleX(var(--rect-scale, 0)); /* ברירת-מחדל – ריק */
+  transition: transform 0.12s linear; /* תנועה חלקה */
+  will-change: transform; /* רמז ל-GPU */
+}
+
+/* אקורדים בעבר - ללא מילוי (כמו בעתיד) */
+.chord-slot.past-chord .rectangle-progress-fill {
+  transform: scaleX(0) !important; /* ללא מילוי */
+}
+
+/* כאשר Rectangle Progress Bar מופעל, מגדילים את גובה ה-backdrop */
+.rectangle-progress-enabled .chords-backdrop {
+  padding-top: 26px; /* מוסיפים מרווח גדול יותר למעלה עבור המלבנים הגבוהים יותר */
+}
+
+/* טקסט שם האקורד בתוך המלבן */
+.rectangle-chord-name {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgb(255,255,255);
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 6; /* מעל המילוי */
+}
+
+/* וודא שהמלבן יהיה מעל ה-RED PROGRESS BAR */
+.chord-slot.active-chord::before {
+  z-index: 3; /* מספר נמוך יותר מה-rectangle-progress */
+}
+
+/* מחלקה למלבן שהוזז למעלה בגלל חפיפה - ללא אנימציה */
+.chord-slot .rectangle-progress.elevated-rect {
+  /* שילוב: גם מרכז אופקי וגם הזחה אנכית */
+  transform: translate(
+      -50%,                                           /* תמיד מרכז X */
+      calc(var(--elevation-direction, -1) * var(--elevation-offset)) /* Y דינמי */
+  );
+}
+
+/* BOTTOM → כיוון מדרגה (+1) */
+body.yc-rect-bottom .rectangle-progress.elevated-rect {
+   --elevation-direction: 1;
+}
+/* TOP (ברירת-מחדל) */
+body.yc-rect-top    .rectangle-progress.elevated-rect {
+   --elevation-direction: -1;
+}
+
+/* —–– BOTTOM (ע"י קלאס) —–– */
+/* קלאס חדש שנוסף ע"י JS */
+.rectangle-progress.at-bottom { top:auto; bottom:-38px; }
+
+/* ───────── מרווחים לקרוסלה ───────── */
+body.yc-rect-bottom .rectangle-progress-enabled .chords-carousel{
+  padding-top: 8px;        /* מקטין למעלה */
+  padding-bottom: 38px;    /* בסיס סופי */
+}
+body.yc-rect-bottom .rectangle-progress-enabled.has-elevated-rects .chords-carousel{
+  padding-bottom: 68px;    /* 38 + 30 */
+}
+body.yc-rect-bottom .rectangle-progress-enabled.three-levels .chords-carousel,
+body.yc-rect-bottom .rectangle-progress-enabled.has-elevated-rects.three-levels .chords-carousel{
+  padding-bottom: 98px;    /* 38 + 60 */
+}
+
+/* ─── גם ה-backdrop צריך לגדול ─── */
+body.yc-rect-bottom .rectangle-progress-enabled.chords-backdrop{
+  padding-top: 8px;        /* חזרה לברירת-מחדל */
+  padding-bottom: 28px;    /* בסיס סופי */
+}
+body.yc-rect-bottom .rectangle-progress-enabled.chords-backdrop.has-elevated-rects{
+  padding-bottom: 58px;    /* 28 + 30 */
+}
+body.yc-rect-bottom .rectangle-progress-enabled.chords-backdrop.three-levels,
+body.yc-rect-bottom .rectangle-progress-enabled.chords-backdrop.has-elevated-rects.three-levels{
+  padding-bottom: 88px;    /* 28 + 60 */
+}
+
+/* הגדלת המרווח העליון כשיש מלבנים מורמים - ללא אנימציה */
+.rectangle-progress-enabled.has-elevated-rects .chords-backdrop {
+  padding-top: 56px; /* יותר מקום למלבנים המורמים */
+}
+
+/* קומה שלישית – מרווח 86px (26 + 2×30) */
+.rectangle-progress-enabled.three-levels .chords-backdrop,
+.rectangle-progress-enabled.has-elevated-rects.three-levels .chords-backdrop {
+  padding-top: 86px;
+}

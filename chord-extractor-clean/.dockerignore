@@ -1,0 +1,15 @@
+output/
+temp/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+venv/
+with 11 labs/
+DOCS/
+LOGS DOCKER/
+
+.env
+.env.*
+!.env.example

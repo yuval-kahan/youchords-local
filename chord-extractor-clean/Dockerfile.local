@@ -1,0 +1,82 @@
+# YouChords local-only companion: direct yt-dlp + madmom + Chordino.
+FROM node:22-bookworm-slim AS node-runtime
+
+FROM python:3.10-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.local.txt .
+
+# madmom 0.16.1 needs the pre-NumPy-2 compatibility stack at build time.
+# WhisperX 3.3.1 pins CTranslate2 4.4, whose GPU speech path requires cuDNN 8.
+# PyTorch 2.5 ships cuDNN 9, so install cuDNN 8 separately instead of replacing
+# PyTorch's runtime libraries.
+RUN python -m pip install --upgrade pip "setuptools<81" wheel \
+    && python -m pip install --user "numpy<2" "Cython<3" "scipy<2" mido \
+    && python -m pip install --user --no-build-isolation madmom==0.16.1 \
+    && python -m pip install --user --index-url https://download.pytorch.org/whl/cu121 "torch==2.5.1" \
+    && python -m pip install --user --no-build-isolation --extra-index-url https://download.pytorch.org/whl/cu121 -r requirements.local.txt \
+    && python -m pip install --no-deps --target /opt/youchords-cudnn8 "nvidia-cudnn-cu12==8.9.7.29"
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libglib2.0-0 \
+    libsndfile1 \
+    libgpg-error0 \
+    libp11-kit0 \
+    libsamplerate0 \
+    libsord-0-0 \
+    libserd-0-0 \
+    liblrdf0 \
+    liboggz2 \
+    libfishsound1 \
+    libmad0 \
+    libid3tag0 \
+    libopusfile0 \
+    libqt5xml5 \
+    libqt5network5 \
+    libqt5core5a \
+    patchelf \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /root/.local /root/.local
+COPY --from=builder /opt/youchords-cudnn8 /opt/youchords-cudnn8
+COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
+
+# Some ctranslate2 wheels advertise an executable stack. Hardened Linux hosts
+# reject loading them, so clear that ELF flag during image creation.
+RUN find /root/.local/lib/python3.10/site-packages/ctranslate2.libs \
+    -type f -name '*.so*' -exec patchelf --clear-execstack {} \; 2>/dev/null || true
+
+ENV PATH=/root/.local/bin:$PATH \
+    LD_LIBRARY_PATH=/opt/youchords-cudnn8/nvidia/cudnn/lib:/root/.local/lib/python3.10/site-packages/nvidia/cublas/lib:/root/.local/lib/python3.10/site-packages/nvidia/cuda_runtime/lib \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    VAMP_PATH=/app/vamp_plugins \
+    YOUCHORDS_REGULAR_ENGINE=madmom \
+    YOUCHORDS_LOCAL_PORT=8765
+
+COPY sonic-annotator/ /app/sonic-annotator/
+RUN chmod +x /app/sonic-annotator/sonic-annotator
+
+COPY vamp_plugins/ /app/vamp_plugins/
+COPY main.py process_chords.py compress_files.py local_companion.py /app/
+
+RUN mkdir -p /app/output/chords /app/output/lyrics /app/temp
+
+EXPOSE 8765
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=4 \
+  CMD python -c "import json,urllib.request; json.load(urllib.request.urlopen('http://127.0.0.1:8765/v1/health', timeout=3))" || exit 1
+
+CMD ["python", "local_companion.py"]

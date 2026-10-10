@@ -1,0 +1,65 @@
+/*==============================================================
+  YouChords – css/countdown.css
+  --------------------------------------------------------------
+  • עיצוב לספירה לאחור בפאנל Lyrics & Chords
+  • תמיכה ב-Dark ו-Sepia themes
+  • גודל פונט קטן שלא מרחיב את ה-INTRO
+==============================================================*/
+
+/* אלמנט הספירה - inline ליד ה-[Intro] */
+.countdown-number {
+  display: inline-block;
+  text-align: center;
+  font-weight: bold;
+  font-family: 'Roboto', Arial, sans-serif;
+  transition: color 0.3s ease;
+  user-select: none;
+  pointer-events: none; /* Display-only - לא ניתן ללחיצה */
+  font-size: 18px;
+  line-height: 1;
+  margin-left: 10px; /* רווח מ-[Intro] */
+  vertical-align: middle;
+}
+
+/* מצב לא פעיל (אפור) - Dark Theme */
+.countdown-number.inactive {
+  color: rgba(255, 255, 255, 0.6); /* אפור בהיר יותר - נראה טוב על רקע כהה */
+}
+
+/* מצב פעיל (כחול) - Dark Theme */
+.countdown-number.active {
+  color: #3ea6ff;
+}
+
+/* תמיכה ב-Sepia Theme */
+.sepia-theme .countdown-number.inactive,
+[data-theme="sepia"] .countdown-number.inactive {
+  color: rgba(44, 44, 44, 0.6); /* אפור כהה יותר - נראה טוב על רקע בז' */
+}
+
+.sepia-theme .countdown-number.active,
+[data-theme="sepia"] .countdown-number.active {
+  color: #2c5aa0;
+}
+
+/* תמיכה ב-Light Theme */
+.light-theme .countdown-number.inactive,
+[data-theme="light"] .countdown-number.inactive {
+  color: rgba(0, 0, 0, 0.5); /* אפור כהה - נראה על רקע בהיר */
+}
+
+.light-theme .countdown-number.active,
+[data-theme="light"] .countdown-number.active {
+  color: #2196f3; /* כחול - כמו שאר האלמנטים ב-Light */
+}
+
+/* RTL Support - המספר משמאל לתווית וצמוד אליה */
+.yt-lyrics-chords-panel.yt-lyrics-chords-rtl .countdown-number {
+  margin-left: 0; /* ביטול margin שמאלי */
+  margin-right: 10px; /* רווח מימין (משמאל לתווית) */
+  float: none; /* ביטול float - נשאר inline */
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: 0;
+  margin-bottom: 0;
+}

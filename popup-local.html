@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YouChords Local</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="popup-local.css">
+</head>
+<body class="local-popup">
+  <div class="clouds-container" aria-hidden="true">
+    <div class="cloud cloud-left1"></div>
+    <div class="cloud cloud-left2"></div>
+    <div class="cloud cloud-left3"></div>
+    <div class="cloud cloud-right1"></div>
+    <div class="cloud cloud-right2"></div>
+    <div class="cloud cloud-right3"></div>
+  </div>
+
+  <header class="extension-header">
+    <button id="helpBtn" class="help-btn-header" type="button" aria-label="Open help">?</button>
+    <h1 class="extension-title"><span class="title-you">You</span><span class="title-chords">Chords</span></h1>
+    <span class="site-link local-edition-label">Local edition</span>
+  </header>
+
+  <main>
+    <section class="user-section" aria-labelledby="engineHeading">
+      <div class="user-profile-box local-engine-card">
+        <div class="local-status-row">
+          <span id="statusDot" class="local-status-dot checking" aria-hidden="true"></span>
+          <div class="local-status-copy">
+            <div class="local-card-eyebrow">LOCAL PROCESSOR</div>
+            <h2 id="engineHeading">Checking Docker...</h2>
+            <p id="statusDetail">Connecting on this computer</p>
+          </div>
+          <button id="refreshStatus" class="local-icon-button" type="button" title="Check again" aria-label="Check Docker again">
+            <span aria-hidden="true">&#8635;</span>
+          </button>
+        </div>
+
+        <div id="engineDetails" class="local-engine-details" hidden>
+          <span>madmom</span>
+          <span>Chordino</span>
+          <span>yt-dlp</span>
+          <span>R / R+ / H / H+</span>
+        </div>
+
+        <div id="startHelp" class="local-start-help" hidden>
+          <p>Start the Docker processor from the repository.</p>
+          <button id="copyCommand" class="local-copy-command" type="button">Copy start command</button>
+        </div>
+
+        <div class="local-account-note">No account or sign-in required</div>
+      </div>
+    </section>
+
+    <section class="local-word-translation-settings" aria-labelledby="wordTranslationHeading">
+      <h2 id="wordTranslationHeading">Word translations in chord subtitles</h2>
+      <label class="local-translation-toggle" for="wordTranslationEnabled">
+        <span>Show a translation above each word</span>
+        <input type="checkbox" id="wordTranslationEnabled">
+      </label>
+      <label class="local-translation-field" for="wordTranslationLanguage">
+        <span>Translation language</span>
+        <select id="wordTranslationLanguage">
+          <option value="he">Hebrew</option>
+          <option value="en">English</option>
+          <option value="both">Hebrew + English</option>
+        </select>
+      </label>
+      <label class="local-translation-field" for="wordTranslationModel">
+        <span>Gemini model (free tier)</span>
+        <select id="wordTranslationModel"></select>
+      </label>
+      <p class="local-translation-note">Translations are cached locally per video. Gemini API keys are managed below.</p>
+    </section>
+
+    <section class="local-harmony-map-settings" aria-labelledby="harmonyMapHeading">
+      <h2 id="harmonyMapHeading">Chord harmony map</h2>
+      <label class="local-translation-toggle" for="harmonyMapEnabled">
+        <span>Show the floating chord map on YouTube</span>
+        <input type="checkbox" id="harmonyMapEnabled">
+      </label>
+      <p>Follow the playing chord, explore possible transitions, or browse the complete chord atlas. Drag, resize, and lock the map on the video.</p>
+    </section>
+
+    <section id="apiKeySection" class="api-key-section" aria-labelledby="geminiHeading">
+      <div class="api-section-inner">
+        <div class="api-header">
+          <div class="api-title">
+            <span class="local-key-icon" aria-hidden="true">&#128273;</span>
+            <span id="geminiHeading">Gemini subtitles</span>
+          </div>
+          <div class="api-header-right">
+            <div class="api-status not-set" id="apiStatus">
+              <span class="api-status-dot"></span>
+              <span>Not set</span>
+            </div>
+            <button class="api-section-toggle-btn" id="apiSectionToggleBtn" type="button" aria-expanded="true" aria-label="Minimize Gemini settings" title="Minimize Gemini settings">
+              <span id="apiSectionToggleArrow">&#9662;</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="apiSectionContent" class="api-section-content">
+          <p class="api-description">
+            Optional: use your own Gemini API key when YouTube captions are unavailable.
+            Chord processing remains local in Docker.
+          </p>
+
+          <div class="api-key-label"><span>ADD GEMINI API KEY</span></div>
+          <input type="text" class="api-input" id="apiKeyNameInput" placeholder="Name (optional)" maxlength="40" autocomplete="off">
+          <div class="api-input-group">
+            <input type="password" class="api-input" id="apiKeyInput" placeholder="AIzaSy..." maxlength="100" autocomplete="off" spellcheck="false">
+            <button class="toggle-visibility" id="toggleApiKeyBtn" type="button" title="Show or hide API key" aria-label="Show or hide API key">
+              <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="eye-off-icon" viewBox="0 0 24 24" aria-hidden="true" hidden>
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="api-actions">
+            <button class="api-button save" id="saveApiKeyBtn" type="button" disabled>Test &amp; add key</button>
+            <button class="api-button clear" id="clearApiKeyBtn" type="button">Remove all</button>
+          </div>
+          <div id="geminiKeysList" class="local-gemini-keys" aria-live="polite"></div>
+          <div id="apiMessage" class="local-api-message" role="status" aria-live="polite"></div>
+
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="api-link">
+            Get a Gemini API key
+          </a>
+
+          <div class="local-gemini-divider"></div>
+
+          <fieldset class="local-mode-fieldset">
+            <legend>When to use Gemini</legend>
+            <div class="local-mode-control" role="radiogroup" aria-label="Gemini subtitle mode">
+              <button type="button" class="local-mode-button" data-mode="off" role="radio" aria-checked="false">Off</button>
+              <button type="button" class="local-mode-button" data-mode="auto" role="radio" aria-checked="false">Auto</button>
+              <button type="button" class="local-mode-button" data-mode="always" role="radio" aria-checked="false">Always</button>
+            </div>
+            <p id="modeDescription" class="local-mode-description"></p>
+          </fieldset>
+
+          <label class="local-consent-row" for="promptDisclaimerCheckbox">
+            <input type="checkbox" id="promptDisclaimerCheckbox">
+            <span>I understand that Gemini requests are sent to Google using my API key and may be subject to Google's quota or charges.</span>
+          </label>
+
+          <label id="youtubeFallbackRow" class="local-consent-row local-fallback-row" for="youtubeFallbackCheckbox" hidden>
+            <input type="checkbox" id="youtubeFallbackCheckbox">
+            <span>Use YouTube captions when Gemini is unavailable.</span>
+          </label>
+
+          <p class="local-gemini-note">The key is stored only in this browser profile.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="helpPanel" class="local-help-panel" hidden>
+    <div class="local-help-header">
+      <strong>YouChords Local</strong>
+      <button id="helpCloseBtn" type="button" aria-label="Close help">&times;</button>
+    </div>
+    <p>Docker handles chord downloads and analysis locally. Gemini is optional and is used only for subtitles when enabled.</p>
+    <code>powershell -ExecutionPolicy Bypass -File .\scripts\start_youchords_local.ps1</code>
+    <span id="extensionVersion" class="local-version"></span>
+  </aside>
+
+  <script type="module" src="popup-local.js"></script>
+</body>
+</html>
