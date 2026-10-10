@@ -254,7 +254,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker compose -f docker-compose.local.yml up --build -d
+          bash scripts/start_youchords_local.sh
           for attempt in $(seq 1 120); do
             if curl -fsS http://127.0.0.1:8765/v1/health -o "$RUNNER_TEMP/docker-health.json"; then break; fi
             sleep 5
