@@ -188,7 +188,7 @@ jobs:
           install -m 0755 "$uv_scripts/uv" linux-payload/runtime/uv
           mkdir -p linux-payload/licenses
           uv_licenses="$(python -c 'import site; print(site.getsitepackages()[0])')"
-          find "$uv_licenses" -path '*uv-0.13.0.dist-info/LICENSE*' -type f -exec cp {} linux-payload/licenses/ \;
+          find "$uv_licenses" -path '*uv-0.13.0.dist-info/licenses/LICENSE*' -type f -exec cp {} linux-payload/licenses/ \;
           test -n "$(find linux-payload/licenses -type f -print -quit)"
           YOUCHORDS_LINUX_PAYLOAD="$GITHUB_WORKSPACE/linux-payload" bash scripts/build_linux_installer.sh "$version"
 
