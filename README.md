@@ -124,11 +124,11 @@ Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
 
 Open a YouTube music video and use the YouChords buttons next to the player controls.
 
-If both processors are running, the popup's **PROCESSOR** selector decides which one handles new work. Results and caches stay separate for each installation.
+If multiple processors are running, the popup's **PROCESSOR** selector decides which one handles new work. Results and caches stay separate for each installation.
 
 ## Install with Codex or another AI coding assistant
 
-Codex can help install either local processor and guide you through loading the extension. The first setup downloads dependencies and may take a while. The extension must still be loaded in Chrome from the repository folder containing `manifest.json`.
+Codex can help install Docker, Windows, or Linux and guide you through loading the extension. The first setup downloads dependencies and may take a while. The extension must still be loaded in Chrome from the repository folder containing `manifest.json`.
 
 If the repository is not already open in Codex, ask it to clone `https://github.com/yuval-kahan/youchords-local` into your workspace. Then paste this prompt:
 
