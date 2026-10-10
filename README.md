@@ -110,6 +110,24 @@ Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
 
 Open a YouTube music video and use the YouChords buttons next to the player controls.
 
+## Install with Codex or another AI coding assistant
+
+Codex can help clone the repository, start the local Docker processor, and guide you through loading the extension. The first Docker build downloads dependencies and may take a while. The extension must still be loaded in Chrome from the repository folder containing `manifest.json`.
+
+If the repository is not already open in Codex, ask it to clone `https://github.com/yuval-kahan/youchords-local` into your workspace. Then paste this prompt:
+
+```text
+Set up YouChords Local from this repository for local use on this computer.
+
+Read the README and inspect the setup script before running it. Check that Docker Desktop is available. On Windows, start the local processor with .\scripts\start_youchords_local.ps1, then check http://127.0.0.1:8765/v1/health and report whether it is ready. Tell me if a required prerequisite is missing.
+
+After the processor is ready, guide me to chrome://extensions, enable Developer mode, choose Load unpacked, and select this repository's root folder containing manifest.json. If you cannot control Chrome, give me those steps clearly.
+
+Keep Gemini features disabled unless I ask to enable them. Never ask me to paste API keys or passwords into chat, and do not put secrets in files. This is a local installation only: do not commit, push, deploy, or publish anything.
+```
+
+The Codex prompt does not replace the Chrome step: Chrome needs the unpacked extension folder selected in `chrome://extensions`.
+
 ## Whisper subtitles: v2 or v3
 
 Open **Chords → Settings → Subtitles In Chords → Whisper Model** and select one of these options:
