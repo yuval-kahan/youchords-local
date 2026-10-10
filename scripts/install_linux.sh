@@ -77,7 +77,22 @@ fi
 echo "Preparing Python build dependencies and Chordino support..."
 "${app_root}/runtime/uv" pip install --python "${venv_python}" \
   'setuptools<81' wheel 'Cython<3' 'numpy<2' 'scipy<2' mido
-"${app_root}/runtime/uv" pip install --python "${venv_python}" --no-build-isolation 'madmom==0.16.1'
+madmom_source_root="$(mktemp -d "${UV_CACHE_DIR}/madmom.XXXXXX")"
+trap 'rm -rf "${madmom_source_root}"' EXIT
+"${app_root}/runtime/uv" pip download --no-deps --no-binary madmom \
+  --dest "${madmom_source_root}" 'madmom==0.16.1'
+tar -xzf "${madmom_source_root}/madmom-0.16.1.tar.gz" -C "${madmom_source_root}"
+madmom_source="${madmom_source_root}/madmom-0.16.1"
+(
+  cd "${madmom_source}"
+  "${venv_root}/bin/cythonize" -f -3 \
+    madmom/audio/comb_filters.pyx \
+    madmom/features/beats_crf.pyx \
+    madmom/ml/hmm.pyx \
+    madmom/ml/nn/layers.py
+)
+"${app_root}/runtime/uv" pip install --python "${venv_python}" \
+  --no-build-isolation --no-deps "${madmom_source}"
 
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi --query-gpu=name --format=csv,noheader >/dev/null 2>&1; then
   backend_requirements="requirements.linux.cuda.txt"
