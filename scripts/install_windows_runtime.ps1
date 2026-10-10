@@ -32,9 +32,12 @@ Write-Host 'Installing the private Python 3.10 runtime...'
 & $uv python install 3.10 --install-dir $pythonDir
 if ($LASTEXITCODE -ne 0) { throw 'Could not install the private Python runtime.' }
 
-$basePython = (& $uv python find 3.10 --managed-python).Trim()
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $basePython -PathType Leaf)) {
-  throw 'Could not locate the private Python 3.10 runtime.'
+$basePython = Get-ChildItem -LiteralPath $pythonDir -Filter 'python.exe' -File -Recurse |
+  Select-Object -First 1 -ExpandProperty FullName
+if (-not $basePython) {
+  $findOutput = & $uv python find 3.10 --managed-python 2>&1
+  Write-Host "uv python find output: $($findOutput -join ' ')"
+  throw "Could not locate the private Python 3.10 runtime under $pythonDir."
 }
 
 if (-not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
