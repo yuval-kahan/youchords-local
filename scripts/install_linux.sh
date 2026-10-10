@@ -79,9 +79,14 @@ echo "Preparing Python build dependencies and Chordino support..."
   'setuptools<81' wheel 'Cython<3' 'numpy<2' 'scipy<2' mido
 madmom_source_root="$(mktemp -d "${UV_CACHE_DIR}/madmom.XXXXXX")"
 trap 'rm -rf "${madmom_source_root}"' EXIT
-"${app_root}/runtime/uv" pip download --no-deps --no-binary madmom \
-  --dest "${madmom_source_root}" 'madmom==0.16.1'
-tar -xzf "${madmom_source_root}/madmom-0.16.1.tar.gz" -C "${madmom_source_root}"
+madmom_source_tarball="${madmom_source_root}/madmom-0.16.1.tar.gz"
+curl -fsSL \
+  'https://files.pythonhosted.org/packages/c7/a3/9f3de3e8068a3606331134d96b84c8db4f7624d6715be8ab3c1f56e6731d/madmom-0.16.1.tar.gz' \
+  -o "${madmom_source_tarball}"
+printf '%s  %s\n' \
+  '64a86a29106e7c4e0c5f4ec96801c2d1a8492db710e4fe27e097da5517d68cb2' \
+  "${madmom_source_tarball}" | sha256sum --check --status
+tar -xzf "${madmom_source_tarball}" -C "${madmom_source_root}"
 madmom_source="${madmom_source_root}/madmom-0.16.1"
 (
   cd "${madmom_source}"
