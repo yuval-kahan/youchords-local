@@ -68,7 +68,7 @@ export UV_CACHE_DIR="${HOME}/.cache/YouChordsLocal/uv"
 mkdir -p "${UV_CACHE_DIR}"
 echo "Installing the private Python 3.10 runtime..."
 "${app_root}/runtime/uv" python install 3.10 --install-dir "${app_root}/runtime/python"
-base_python=$(UV_PYTHON_INSTALL_DIR="${app_root}/runtime/python" UV_PYTHON_PREFERENCE=only-managed \
+base_python=$(UV_PYTHON_INSTALL_DIR="${app_root}/runtime/python" \
   "${app_root}/runtime/uv" python find 3.10 --managed-python)
 if [[ ! -x "${venv_python}" ]]; then
   "${app_root}/runtime/uv" venv --python "${base_python}" "${venv_root}"
