@@ -217,9 +217,10 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 120); do
-            if curl -fsS http://127.0.0.1:8767/v1/health -o "$RUNNER_TEMP/health.json"; then break; fi
+            if env -u LD_LIBRARY_PATH curl -fsS http://127.0.0.1:8767/v1/health -o "$RUNNER_TEMP/health.json"; then break; fi
             sleep 5
           done
+          test -s "$RUNNER_TEMP/health.json" || { cat "$RUNNER_TEMP/linux-processor.log"; exit 1; }
           python - "$RUNNER_TEMP/health.json" <<'PY'
           import json, sys
           with open(sys.argv[1], encoding='utf-8') as handle:
