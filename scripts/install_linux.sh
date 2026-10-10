@@ -101,12 +101,15 @@ madmom_source="${madmom_source_root}/madmom-0.16.1"
 
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi --query-gpu=name --format=csv,noheader >/dev/null 2>&1; then
   backend_requirements="requirements.linux.cuda.txt"
+  backend_index="https://download.pytorch.org/whl/cu121"
   echo "NVIDIA GPU detected. Installing the CUDA processing runtime..."
 else
   backend_requirements="requirements.linux.cpu.txt"
+  backend_index="https://download.pytorch.org/whl/cpu"
   echo "No usable NVIDIA GPU detected. Installing the CPU processing runtime..."
 fi
 "${app_root}/runtime/uv" pip install --python "${venv_python}" \
+  --index-url "${backend_index}" --extra-index-url https://pypi.org/simple \
   -r "${app_root}/processor/requirements.linux.txt" \
   -r "${app_root}/processor/${backend_requirements}"
 
